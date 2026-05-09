@@ -394,8 +394,8 @@ export default function MainContent() {
 
   return (
     <main className="flex-1 flex flex-col min-w-0">
-      {/* 顶部动作栏 */}
-      <header className="flex items-center justify-between px-6 py-4 border-b border-gray-200 bg-white">
+      {currentView === 'home' && (
+        <header className="flex items-center justify-between px-6 py-4 border-b border-gray-200 bg-white">
         {isEditingName ? (
           <input
             type="text"
@@ -435,8 +435,11 @@ export default function MainContent() {
           </button>
         </div>
       </header>
+      )}
 
-      <SearchDialog open={searchOpen} onOpenChange={setSearchOpen} />
+      {currentView === 'home' && (
+        <SearchDialog open={searchOpen} onOpenChange={setSearchOpen} />
+      )}
 
       {/* 内容区 */}
       <div className="flex-1 p-6 overflow-y-auto">

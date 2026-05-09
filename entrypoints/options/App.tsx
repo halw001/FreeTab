@@ -330,6 +330,7 @@ function DragOverlayCard({ item }: { item: DragItemData }) {
 
 function App() {
   const currentSpaceId = useTabStore((state) => state.currentSpaceId);
+  const currentView = useTabStore((state) => state.currentView);
   const moveTab = useTabStore((state) => state.moveTab);
   const addTabToGroup = useTabStore((state) => state.addTabToGroup);
   const saveCurrentWindowTabs = useTabStore(
@@ -533,7 +534,9 @@ function App() {
       <div className="h-screen flex bg-gray-50">
         <Sidebar />
         <MainContent />
-        <ActiveTabsSidebar onSaveAll={saveCurrentWindowTabs} />
+        {currentView === 'home' && (
+          <ActiveTabsSidebar onSaveAll={saveCurrentWindowTabs} />
+        )}
       </div>
       <DragOverlay dropAnimation={null}>
         {activeDragItem ? <DragOverlayCard item={activeDragItem} /> : null}

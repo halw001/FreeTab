@@ -12,6 +12,7 @@ import {
   ArrowUpFromLine,
   ArrowDownToLine,
   Loader2,
+  HelpCircle,
 } from 'lucide-react';
 import { useTabStore } from '../../src/store/useTabStore';
 import { uploadToWebDAV, downloadFromWebDAV } from '../../src/utils/webdavSync';
@@ -525,7 +526,7 @@ export default function SyncView() {
         </div>
 
         {/* WebDAV 同步卡片 */}
-        <div className="border border-gray-200 rounded-lg bg-white overflow-hidden">
+        <div className="border border-gray-200 rounded-lg bg-white">
           <div className="p-4 flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="w-9 h-9 rounded-md bg-gray-100 flex items-center justify-center">
@@ -539,9 +540,14 @@ export default function SyncView() {
                   <span className="px-1.5 py-0.5 text-[10px] font-medium text-green-700 bg-green-50 rounded border border-green-200">
                     Beta
                   </span>
-                  <span className="px-1.5 py-0.5 text-[10px] font-medium text-yellow-700 bg-yellow-50 rounded border border-yellow-200">
-                    坚果云 WebDAV
-                  </span>
+                  <div className="relative group">
+                    <HelpCircle size={14} className="text-gray-400 hover:text-gray-600 cursor-help transition-colors" />
+                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 text-white text-xs rounded-md shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-150 whitespace-nowrap z-50">
+                      <div className="font-medium mb-1">支持的 WebDAV 服务：</div>
+                      <div>坚果云jianguoyun · infini-cloud · teracloud · yandex · box · 4shared</div>
+                      <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-px border-4 border-transparent border-t-gray-900"></div>
+                    </div>
+                  </div>
                 </div>
                 <p className="text-xs text-gray-500 mt-0.5">
                   通过 WebDAV 协议连接私有云存储

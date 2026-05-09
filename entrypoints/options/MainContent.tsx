@@ -425,9 +425,6 @@ export default function MainContent() {
           >
             <Search size={16} />
             <span className="hidden sm:inline">搜索标签页</span>
-            <kbd className="hidden sm:inline-flex items-center gap-1 px-1.5 py-0.5 text-xs font-medium text-gray-500 bg-gray-100 rounded border border-gray-200 ml-1">
-              ⌘ J
-            </kbd>
           </button>
           <button
             onClick={handleAddGroup}

@@ -8,6 +8,7 @@ export default defineConfig({
     plugins: [tailwindcss()],
   }),
   manifest: {
+    name: 'FreeTab',
     action: {
       default_popup: undefined,
     },

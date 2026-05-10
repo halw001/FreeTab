@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useMemo } from 'react';
 import { Plus, Settings, Globe, Trash2, Cloud, Cog } from 'lucide-react';
 import {
   DndContext,
@@ -20,6 +20,7 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { useTabStore } from '../../src/store/useTabStore';
+import { getTheme } from '../../src/themes';
 import type { Space } from '../../src/types';
 import MainContent from './MainContent';
 import ActiveTabsSidebar from './ActiveTabsSidebar';
@@ -60,6 +61,11 @@ function SortableSpaceItem({
   onSelect: () => void;
 }) {
   const deleteSpace = useTabStore((state) => state.deleteSpace);
+  const theme = useTabStore((state) => state.theme);
+  const t = getTheme(theme);
+  const [isHovered, setIsHovered] = useState(false);
+
+  const sortableData = useMemo(() => ({ type: 'Space' as const, space }), [space]);
 
   const {
     attributes,
@@ -68,7 +74,7 @@ function SortableSpaceItem({
     transform,
     transition,
     isDragging,
-  } = useSortable({ id: space.id, data: { type: 'Space', space } });
+  } = useSortable({ id: space.id, data: sortableData });
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -78,23 +84,38 @@ function SortableSpaceItem({
   return (
     <div
       ref={setNodeRef}
-      style={style}
+      style={{
+        ...style,
+        backgroundColor: isActive
+          ? t.sidebarActiveBg
+          : isHovered
+            ? t.sidebarHoverBg
+            : 'transparent',
+      }}
       className={`group flex items-center justify-between px-3 py-2 rounded-md text-sm transition-colors ${
-        isActive
-          ? 'bg-gray-100 text-gray-900 font-semibold'
-          : 'text-gray-600 hover:bg-gray-50'
-      } ${isDragging ? 'opacity-50 shadow-md' : ''}`}
+        isDragging ? 'opacity-50 shadow-md' : ''
+      }`}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
     >
       <button
         onClick={onSelect}
         className="flex-1 text-left truncate"
+        style={{
+          color: isActive ? t.sidebarActiveText : t.sidebarText,
+          fontWeight: isActive ? 600 : 400,
+          borderRadius: '0.375rem',
+          padding: '0.25rem 0.5rem',
+          margin: '-0.25rem -0.5rem',
+        }}
       >
         {space.name}
       </button>
       <div
         {...attributes}
         {...listeners}
-        className="cursor-grab active:cursor-grabbing p-1 text-gray-300 hover:text-gray-500 opacity-0 group-hover:opacity-100 transition-opacity"
+        className="cursor-grab active:cursor-grabbing p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+        style={{ color: t.sidebarTextMuted }}
       >
         <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor">
           <circle cx="2" cy="3" r="1.2" />
@@ -108,7 +129,8 @@ function SortableSpaceItem({
       <AlertDialog>
         <AlertDialogTrigger asChild>
           <button
-            className="p-1 text-gray-400 hover:text-red-600 opacity-0 group-hover:opacity-100 transition-opacity"
+            className="p-1 hover:text-red-600 opacity-0 group-hover:opacity-100 transition-opacity"
+            style={{ color: t.textMuted }}
             title="删除空间"
             onClick={(e) => e.stopPropagation()}
           >
@@ -140,6 +162,8 @@ function SortableSpaceItem({
   );
 }
 
+const SPACE_POINTER_OPTIONS = { activationConstraint: { distance: 5 } as const };
+
 function Sidebar() {
   const spaces = useTabStore((state) => state.spaces);
   const currentSpaceId = useTabStore((state) => state.currentSpaceId);
@@ -147,6 +171,8 @@ function Sidebar() {
   const setCurrentView = useTabStore((state) => state.setCurrentView);
   const addSpace = useTabStore((state) => state.addSpace);
   const reorderSpaces = useTabStore((state) => state.reorderSpaces);
+  const theme = useTabStore((state) => state.theme);
+  const t = getTheme(theme);
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [newSpaceName, setNewSpaceName] = useState('');
@@ -154,9 +180,7 @@ function Sidebar() {
   const [activeSpaceId, setActiveSpaceId] = useState<string | null>(null);
 
   const spaceSensors = useSensors(
-    useSensor(PointerSensor, {
-      activationConstraint: { distance: 5 },
-    }),
+    useSensor(PointerSensor, SPACE_POINTER_OPTIONS),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
     }),
@@ -194,13 +218,30 @@ function Sidebar() {
   const activeSpace = spaces.find((s) => s.id === activeSpaceId);
 
   return (
-    <aside className="w-64 h-screen flex flex-col bg-white border-r border-gray-200 flex-shrink-0">
+    <aside
+      className="w-64 h-screen flex flex-col border-r flex-shrink-0"
+      style={{
+        backgroundColor: t.sidebarBg,
+        borderColor: t.sidebarBorder,
+      }}
+    >
       {/* 顶部：应用名称 + 添加按钮 */}
       <div className="flex items-center justify-between px-4 py-3">
-        <span className="text-lg font-bold text-gray-900">FreeTab</span>
+        <span className="text-lg font-bold" style={{ color: t.sidebarText }}>FreeTab</span>
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogTrigger asChild>
-            <button className="p-1.5 rounded-md text-gray-500 hover:text-gray-900 hover:bg-gray-100 transition-colors">
+            <button
+              className="p-1.5 rounded-md transition-colors"
+              style={{ color: t.sidebarTextMuted, ':hover': { color: t.sidebarText, backgroundColor: t.sidebarHoverBg } as any }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.color = t.sidebarText;
+                e.currentTarget.style.backgroundColor = t.sidebarHoverBg;
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.color = t.sidebarTextMuted;
+                e.currentTarget.style.backgroundColor = 'transparent';
+              }}
+            >
               <Plus size={18} />
             </button>
           </DialogTrigger>
@@ -210,7 +251,7 @@ function Sidebar() {
             </DialogHeader>
             <div className="space-y-4 pt-2">
               <div className="space-y-2">
-                <label className="text-sm font-medium text-gray-700">
+                <label className="text-sm font-medium" style={{ color: t.textSecondary }}>
                   空间名称
                 </label>
                 <Input
@@ -258,7 +299,13 @@ function Sidebar() {
         </SortableContext>
         <DragOverlay dropAnimation={null}>
           {activeSpace ? (
-            <div className="px-3 py-2 rounded-md text-sm font-semibold bg-gray-100 text-gray-900 shadow-lg">
+            <div
+              className="px-3 py-2 rounded-md text-sm font-semibold shadow-lg"
+              style={{
+                backgroundColor: t.sidebarActiveBg,
+                color: t.sidebarActiveText,
+              }}
+            >
               {activeSpace.name}
             </div>
           ) : null}
@@ -266,10 +313,19 @@ function Sidebar() {
       </DndContext>
 
       {/* 底部：设置按钮 */}
-      <div className="px-3 py-3 border-t border-gray-100">
+      <div className="px-3 py-3" style={{ borderColor: t.sidebarBorder, borderTopWidth: '1px', borderTopStyle: 'solid' }}>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <button className="flex items-center gap-2 w-full px-3 py-2 rounded-md text-sm text-gray-600 hover:bg-gray-50 transition-colors">
+            <button
+              className="flex items-center gap-2 w-full px-3 py-2 rounded-md text-sm transition-colors"
+              style={{ color: t.sidebarTextMuted }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = t.sidebarHoverBg;
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = 'transparent';
+              }}
+            >
               <Settings size={16} />
               <span>设置</span>
             </button>
@@ -282,7 +338,7 @@ function Sidebar() {
               }}
               className="flex items-center gap-2 cursor-pointer"
             >
-              <Cog size={14} className="text-gray-500" />
+              <Cog size={14} style={{ color: t.textMuted }} />
               <span>设置</span>
             </DropdownMenuItem>
             <DropdownMenuItem
@@ -292,7 +348,7 @@ function Sidebar() {
               }}
               className="flex items-center gap-2 cursor-pointer"
             >
-              <Cloud size={14} className="text-gray-500" />
+              <Cloud size={14} style={{ color: t.textMuted }} />
               <span>备份与同步</span>
             </DropdownMenuItem>
           </DropdownMenuContent>
@@ -314,14 +370,22 @@ interface DragItemData {
 }
 
 function DragOverlayCard({ item }: { item: DragItemData }) {
+  const theme = useTabStore((state) => state.theme);
+  const t = getTheme(theme);
   return (
-    <div className="flex items-center gap-2 px-3 py-2.5 w-64 bg-white border border-gray-200 rounded-md shadow-2xl opacity-90 cursor-grabbing">
+    <div
+      className="flex items-center gap-2 px-3 py-2.5 w-64 border rounded-md shadow-2xl opacity-90 cursor-grabbing"
+      style={{
+        backgroundColor: t.cardBg,
+        borderColor: t.cardBorder,
+      }}
+    >
       {item.tab.favIconUrl ? (
         <img src={item.tab.favIconUrl} alt="" className="w-4 h-4 flex-shrink-0" />
       ) : (
-        <Globe size={14} className="text-gray-400 flex-shrink-0" />
+        <Globe size={14} className="flex-shrink-0" style={{ color: t.textMuted }} />
       )}
-      <span className="flex-1 min-w-0 text-sm text-gray-700 truncate">
+      <span className="flex-1 min-w-0 text-sm truncate" style={{ color: t.textSecondary }}>
         {item.tab.title}
       </span>
     </div>
@@ -331,6 +395,8 @@ function DragOverlayCard({ item }: { item: DragItemData }) {
 function App() {
   const currentSpaceId = useTabStore((state) => state.currentSpaceId);
   const currentView = useTabStore((state) => state.currentView);
+  const theme = useTabStore((state) => state.theme);
+  const t = getTheme(theme);
   const moveTab = useTabStore((state) => state.moveTab);
   const addTabToGroup = useTabStore((state) => state.addTabToGroup);
   const saveCurrentWindowTabs = useTabStore(
@@ -531,7 +597,7 @@ function App() {
       onDragEnd={handleDragEnd}
       onDragCancel={handleDragCancel}
     >
-      <div className="h-screen flex bg-gray-50">
+      <div className="h-screen flex" style={{ backgroundColor: t.mainBg }}>
         <Sidebar />
         <MainContent />
         {currentView === 'home' && (

@@ -2,6 +2,8 @@ import { useState, useEffect, useCallback } from 'react';
 import { Globe } from 'lucide-react';
 import { useDraggable } from '@dnd-kit/core';
 import { CSS } from '@dnd-kit/utilities';
+import { useTabStore } from '../../src/store/useTabStore';
+import { getTheme } from '../../src/themes';
 
 interface ActiveTab {
   id: number;
@@ -17,6 +19,9 @@ function DraggableActiveTab({ tab }: { tab: ActiveTab }) {
       data: { type: 'ActiveTab', tab },
     });
 
+  const theme = useTabStore((state) => state.theme);
+  const t = getTheme(theme);
+
   const style = {
     transform: CSS.Transform.toString(transform),
   };
@@ -24,10 +29,15 @@ function DraggableActiveTab({ tab }: { tab: ActiveTab }) {
   return (
     <div
       ref={setNodeRef}
-      style={style}
+      style={{
+        ...style,
+        backgroundColor: t.cardBg,
+        borderColor: t.cardBorder,
+        boxShadow: t.cardShadow,
+      }}
       {...attributes}
       {...listeners}
-      className={`group flex items-center gap-2 px-3 py-2.5 bg-white border border-gray-200 rounded-md shadow-sm hover:shadow transition-shadow cursor-pointer ${
+      className={`group flex items-center gap-2 px-3 py-2.5 border rounded-md hover:shadow transition-shadow cursor-pointer ${
         isDragging ? 'opacity-30 cursor-grabbing' : ''
       }`}
     >
@@ -41,10 +51,11 @@ function DraggableActiveTab({ tab }: { tab: ActiveTab }) {
           }}
         />
       ) : (
-        <Globe size={14} className="text-gray-400 flex-shrink-0" />
+        <Globe size={14} className="flex-shrink-0" style={{ color: t.textMuted }} />
       )}
       <span
-        className="flex-1 min-w-0 text-sm text-gray-700 truncate"
+        className="flex-1 min-w-0 text-sm truncate"
+        style={{ color: t.textSecondary }}
         title={tab.title}
       >
         {tab.title}
@@ -61,6 +72,8 @@ export default function ActiveTabsSidebar({
   onSaveAll,
 }: ActiveTabsSidebarProps) {
   const [activeTabs, setActiveTabs] = useState<ActiveTab[]>([]);
+  const theme = useTabStore((state) => state.theme);
+  const t = getTheme(theme);
 
   const fetchTabs = useCallback(async () => {
     const tabs = await chrome.tabs.query({ currentWindow: true });
@@ -101,15 +114,37 @@ export default function ActiveTabsSidebar({
   }, [fetchTabs]);
 
   return (
-    <aside className="w-80 h-screen flex flex-col bg-gray-50 border-l border-gray-200 flex-shrink-0">
+    <aside
+      className="w-80 h-screen flex flex-col border-l flex-shrink-0"
+      style={{
+        backgroundColor: t.mainBg,
+        borderColor: t.headerBorder,
+      }}
+    >
       {/* 顶部：标题 + 保存按钮 */}
-      <div className="px-4 py-4 border-b border-gray-200 bg-white">
-        <h2 className="text-sm font-bold text-gray-900 mb-3">
+      <div
+        className="px-4 py-4 border-b"
+        style={{
+          backgroundColor: t.headerBg,
+          borderColor: t.headerBorder,
+        }}
+      >
+        <h2 className="text-sm font-bold mb-3" style={{ color: t.textPrimary }}>
           当前打开的标签页
         </h2>
         <button
           onClick={onSaveAll}
-          className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-800 transition-colors"
+          className="w-full flex items-center justify-center gap-2 px-3 py-2 text-sm font-medium rounded-lg transition-colors"
+          style={{
+            backgroundColor: t.buttonPrimaryBg,
+            color: t.buttonPrimaryText,
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.backgroundColor = t.buttonPrimaryHover;
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.backgroundColor = t.buttonPrimaryBg;
+          }}
         >
           <span>📥</span>
           <span>保存全部</span>
@@ -119,7 +154,7 @@ export default function ActiveTabsSidebar({
       {/* 标签列表 */}
       <div className="flex-1 overflow-y-auto p-3 space-y-2">
         {activeTabs.length === 0 ? (
-          <p className="text-center text-gray-400 text-sm py-8">
+          <p className="text-center text-sm py-8" style={{ color: t.emptyText }}>
             没有可收纳的标签页
           </p>
         ) : (

@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import type { Space, TabGroup, TabItem } from '../types';
+import type { ThemeId } from '../themes';
 
 export type ViewType = 'home' | 'sync' | 'settings';
 
@@ -25,11 +26,13 @@ interface TabState {
   spaces: Space[];
   currentSpaceId: string;
   currentView: ViewType;
+  theme: ThemeId;
   lastModified: number;
   syncSettings: SyncSettings;
   addSpace: (name: string) => void;
   setCurrentSpace: (id: string) => void;
   setCurrentView: (view: ViewType) => void;
+  setTheme: (theme: ThemeId) => void;
   renameSpace: (spaceId: string, newName: string) => void;
   deleteSpace: (spaceId: string) => void;
   reorderSpaces: (activeId: string, overId: string) => void;
@@ -73,7 +76,7 @@ const defaultSyncSettings: SyncSettings = {
   webdav: { enabled: false, url: '', username: '', password: '', autoSync: false },
 };
 
-function loadState(): { spaces: Space[]; currentSpaceId: string; currentView: ViewType; lastModified: number; syncSettings: SyncSettings } | null {
+function loadState(): { spaces: Space[]; currentSpaceId: string; currentView: ViewType; theme: ThemeId; lastModified: number; syncSettings: SyncSettings } | null {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return null;
@@ -90,7 +93,7 @@ function loadState(): { spaces: Space[]; currentSpaceId: string; currentView: Vi
   }
 }
 
-function saveState(state: { spaces: Space[]; currentSpaceId: string; currentView: ViewType; lastModified: number; syncSettings: SyncSettings }) {
+function saveState(state: { spaces: Space[]; currentSpaceId: string; currentView: ViewType; theme: ThemeId; lastModified: number; syncSettings: SyncSettings }) {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify({ state }));
     // 同步写入 chrome.storage.local，供 Background Service Worker 读取
@@ -137,13 +140,7 @@ if (typeof chrome !== 'undefined' && chrome.storage?.onChanged) {
     const newLastModified = newState.lastModified;
 
     const current = useTabStore.getState();
-    const currentSpaces = current.spaces;
     const currentLastModified = current.lastModified;
-
-    const isCurrentEmpty = currentSpaces.reduce(
-      (sum, s) => sum + s.groups.reduce((gSum, g) => gSum + g.tabs.length, 0),
-      0,
-    ) === 0;
 
     const newWebdavSyncTime = newState.syncSettings?.webdav?.lastSyncTime;
     const currentWebdavSyncTime = current.syncSettings?.webdav?.lastSyncTime;
@@ -153,7 +150,7 @@ if (typeof chrome !== 'undefined' && chrome.storage?.onChanged) {
       (newWebdavSyncTime != null && newWebdavSyncTime !== currentWebdavSyncTime) ||
       (newGistSyncTime != null && newGistSyncTime !== currentGistSyncTime);
 
-    const dataChanged = newLastModified > currentLastModified || isCurrentEmpty;
+    const dataChanged = newLastModified > currentLastModified;
 
     if (dataChanged || syncSettingsChanged) {
       isApplyingRemoteChange = true;
@@ -191,6 +188,7 @@ export const useTabStore = create<TabState>((set) => ({
   spaces: saved?.spaces ?? [defaultSpace],
   currentSpaceId: saved?.currentSpaceId ?? defaultSpace.id,
   currentView: saved?.currentView ?? 'home',
+  theme: saved?.theme ?? 'ocean',
   lastModified: saved?.lastModified ?? 0,
   syncSettings: saved?.syncSettings ?? defaultSyncSettings,
 
@@ -222,6 +220,12 @@ export const useTabStore = create<TabState>((set) => ({
   setCurrentView: (view: ViewType) =>
     set((state) => {
       const nextState = { ...state, currentView: view };
+      saveState(nextState);
+      return nextState;
+    }),
+  setTheme: (theme: ThemeId) =>
+    set((state) => {
+      const nextState = { ...state, theme };
       saveState(nextState);
       return nextState;
     }),

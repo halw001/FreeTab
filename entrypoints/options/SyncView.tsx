@@ -15,6 +15,7 @@ import {
   HelpCircle,
 } from 'lucide-react';
 import { useTabStore } from '../../src/store/useTabStore';
+import { getTheme } from '../../src/themes';
 import { uploadToWebDAV, downloadFromWebDAV } from '../../src/utils/webdavSync';
 import { uploadToGist, downloadFromGist } from '../../src/utils/gistSync';
 import { requestHostPermission } from '../../src/utils/permissions';
@@ -37,12 +38,13 @@ function ToggleSwitch({
   checked: boolean;
   onChange: (v: boolean) => void;
 }) {
+  const theme = useTabStore((state) => state.theme);
+  const t = getTheme(theme);
   return (
     <button
       onClick={() => onChange(!checked)}
-      className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${
-        checked ? 'bg-blue-600' : 'bg-gray-200'
-      }`}
+      className="relative inline-flex h-5 w-9 items-center rounded-full transition-colors"
+      style={{ backgroundColor: checked ? '#2563eb' : t.toggleOffBg }}
     >
       <span
         className={`inline-block h-3.5 w-3.5 rounded-full bg-white shadow transition-transform ${
@@ -62,6 +64,8 @@ function PasswordInput({
   onChange: (v: string) => void;
   placeholder?: string;
 }) {
+  const theme = useTabStore((state) => state.theme);
+  const t = getTheme(theme);
   const [visible, setVisible] = useState(false);
   return (
     <div className="relative w-80">
@@ -70,12 +74,14 @@ function PasswordInput({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className="w-full px-3 py-2 pr-9 text-sm border border-gray-200 rounded-md outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
+        className="w-full px-3 py-2 pr-9 text-sm border rounded-md outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
+        style={{ borderColor: t.inputBorder, backgroundColor: t.inputBg, color: t.textPrimary }}
       />
       <button
         type="button"
         onClick={() => setVisible(!visible)}
-        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+        className="absolute right-2.5 top-1/2 -translate-y-1/2"
+        style={{ color: t.textMuted }}
       >
         {visible ? <EyeOff size={14} /> : <Eye size={14} />}
       </button>
@@ -87,6 +93,8 @@ function WebDAVSyncButtons() {
   const spaces = useTabStore((state) => state.spaces);
   const replaceSpaces = useTabStore((state) => state.replaceSpaces);
   const syncSettings = useTabStore((state) => state.syncSettings);
+  const theme = useTabStore((state) => state.theme);
+  const t = getTheme(theme);
   const [uploading, setUploading] = useState(false);
   const [downloading, setDownloading] = useState(false);
 
@@ -173,7 +181,12 @@ function WebDAVSyncButtons() {
       <button
         onClick={handleUpload}
         disabled={uploading}
-        className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-700 bg-white border border-gray-200 rounded-md hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium border rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        style={{
+          color: t.buttonSecondaryText,
+          backgroundColor: t.buttonSecondaryBg,
+          borderColor: t.buttonSecondaryBorder,
+        }}
       >
         {uploading ? <Loader2 size={13} className="animate-spin" /> : <ArrowUpFromLine size={13} />}
         <span>本地覆盖远程</span>
@@ -181,7 +194,12 @@ function WebDAVSyncButtons() {
       <button
         onClick={handleDownload}
         disabled={downloading}
-        className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-700 bg-white border border-gray-200 rounded-md hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium border rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        style={{
+          color: t.buttonSecondaryText,
+          backgroundColor: t.buttonSecondaryBg,
+          borderColor: t.buttonSecondaryBorder,
+        }}
       >
         {downloading ? <Loader2 size={13} className="animate-spin" /> : <ArrowDownToLine size={13} />}
         <span>远程覆盖本地</span>
@@ -195,6 +213,8 @@ function GistSyncButtons() {
   const replaceSpaces = useTabStore((state) => state.replaceSpaces);
   const syncSettings = useTabStore((state) => state.syncSettings);
   const updateSyncSettings = useTabStore((state) => state.updateSyncSettings);
+  const theme = useTabStore((state) => state.theme);
+  const t = getTheme(theme);
   const [uploading, setUploading] = useState(false);
   const [downloading, setDownloading] = useState(false);
 
@@ -276,7 +296,12 @@ function GistSyncButtons() {
       <button
         onClick={handleUpload}
         disabled={uploading}
-        className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-700 bg-white border border-gray-200 rounded-md hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium border rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        style={{
+          color: t.buttonSecondaryText,
+          backgroundColor: t.buttonSecondaryBg,
+          borderColor: t.buttonSecondaryBorder,
+        }}
       >
         {uploading ? <Loader2 size={13} className="animate-spin" /> : <ArrowUpFromLine size={13} />}
         <span>本地覆盖远程</span>
@@ -284,7 +309,12 @@ function GistSyncButtons() {
       <button
         onClick={handleDownload}
         disabled={downloading}
-        className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-700 bg-white border border-gray-200 rounded-md hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium border rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        style={{
+          color: t.buttonSecondaryText,
+          backgroundColor: t.buttonSecondaryBg,
+          borderColor: t.buttonSecondaryBorder,
+        }}
       >
         {downloading ? <Loader2 size={13} className="animate-spin" /> : <ArrowDownToLine size={13} />}
         <span>远程覆盖本地</span>
@@ -300,6 +330,8 @@ export default function SyncView() {
   const setCurrentView = useTabStore((state) => state.setCurrentView);
   const syncSettings = useTabStore((state) => state.syncSettings);
   const updateSyncSettings = useTabStore((state) => state.updateSyncSettings);
+  const theme = useTabStore((state) => state.theme);
+  const t = getTheme(theme);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const stats = useMemo(() => {
@@ -364,8 +396,8 @@ export default function SyncView() {
     <div className="max-w-3xl mx-auto py-8 px-6">
       {/* 页面头部 */}
       <div className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-900 mb-2">备份与同步</h1>
-        <p className="text-sm text-gray-500">
+        <h1 className="text-2xl font-bold mb-2" style={{ color: t.textPrimary }}>备份与同步</h1>
+        <p className="text-sm" style={{ color: t.textMuted }}>
           当前数据版本号：{lastModified}，最后修改时间为{' '}
           {formatDateTime(lastModified)}
         </p>
@@ -373,59 +405,94 @@ export default function SyncView() {
 
       {/* 统计卡片区 */}
       <div className="grid grid-cols-3 gap-4 mb-8">
-        <div className="bg-white border border-gray-200 rounded-lg p-4 flex items-center gap-3">
+        <div
+          className="border rounded-lg p-4 flex items-center gap-3"
+          style={{ backgroundColor: t.cardBg, borderColor: t.cardBorder }}
+        >
           <div className="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center flex-shrink-0">
             <LayoutGrid size={20} className="text-blue-600" />
           </div>
           <div>
-            <p className="text-2xl font-bold text-gray-900">
+            <p className="text-2xl font-bold" style={{ color: t.textPrimary }}>
               {stats.spaceCount}
             </p>
-            <p className="text-xs text-gray-500">空间数量</p>
+            <p className="text-xs" style={{ color: t.textMuted }}>空间数量</p>
           </div>
         </div>
-        <div className="bg-white border border-gray-200 rounded-lg p-4 flex items-center gap-3">
+        <div
+          className="border rounded-lg p-4 flex items-center gap-3"
+          style={{ backgroundColor: t.cardBg, borderColor: t.cardBorder }}
+        >
           <div className="w-10 h-10 rounded-lg bg-green-50 flex items-center justify-center flex-shrink-0">
             <FolderOpen size={20} className="text-green-600" />
           </div>
           <div>
-            <p className="text-2xl font-bold text-gray-900">
+            <p className="text-2xl font-bold" style={{ color: t.textPrimary }}>
               {stats.groupCount}
             </p>
-            <p className="text-xs text-gray-500">分组数量</p>
+            <p className="text-xs" style={{ color: t.textMuted }}>分组数量</p>
           </div>
         </div>
-        <div className="bg-white border border-gray-200 rounded-lg p-4 flex items-center gap-3">
+        <div
+          className="border rounded-lg p-4 flex items-center gap-3"
+          style={{ backgroundColor: t.cardBg, borderColor: t.cardBorder }}
+        >
           <div className="w-10 h-10 rounded-lg bg-purple-50 flex items-center justify-center flex-shrink-0">
             <Link size={20} className="text-purple-600" />
           </div>
           <div>
-            <p className="text-2xl font-bold text-gray-900">
+            <p className="text-2xl font-bold" style={{ color: t.textPrimary }}>
               {stats.tabCount}
             </p>
-            <p className="text-xs text-gray-500">标签数量</p>
+            <p className="text-xs" style={{ color: t.textMuted }}>标签数量</p>
           </div>
         </div>
       </div>
 
       {/* 离线同步区 */}
       <div className="mb-8">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">离线同步</h2>
-        <div className="bg-white border border-gray-200 rounded-lg p-6">
-          <p className="text-sm text-gray-500 mb-4">
+        <h2 className="text-lg font-semibold mb-4" style={{ color: t.textPrimary }}>离线同步</h2>
+        <div
+          className="border rounded-lg p-6"
+          style={{ backgroundColor: t.cardBg, borderColor: t.cardBorder }}
+        >
+          <p className="text-sm mb-4" style={{ color: t.textMuted }}>
             将您的所有数据导出为 JSON 文件进行本地备份，或从备份文件恢复数据。
           </p>
           <div className="flex items-center gap-3">
             <button
               onClick={handleExport}
-              className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-white bg-gray-900 rounded-md hover:bg-gray-800 transition-colors"
+              className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium rounded-md transition-colors"
+              style={{
+                backgroundColor: t.buttonPrimaryBg,
+                color: t.buttonPrimaryText,
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = t.buttonPrimaryHover;
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = t.buttonPrimaryBg;
+              }}
             >
               <Download size={16} />
               <span>导出数据</span>
             </button>
             <button
               onClick={handleImportClick}
-              className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-md hover:bg-gray-50 hover:border-gray-300 transition-colors"
+              className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium border rounded-md transition-colors"
+              style={{
+                color: t.buttonSecondaryText,
+                backgroundColor: t.buttonSecondaryBg,
+                borderColor: t.buttonSecondaryBorder,
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = t.buttonSecondaryHover;
+                e.currentTarget.style.borderColor = t.textMuted;
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = t.buttonSecondaryBg;
+                e.currentTarget.style.borderColor = t.buttonSecondaryBorder;
+              }}
             >
               <Upload size={16} />
               <span>导入数据</span>
@@ -443,25 +510,31 @@ export default function SyncView() {
 
       {/* 远程同步区 */}
       <div>
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">远程同步</h2>
+        <h2 className="text-lg font-semibold mb-4" style={{ color: t.textPrimary }}>远程同步</h2>
 
         {/* GitHub Gist 同步卡片 */}
-        <div className="border border-gray-200 rounded-lg bg-white mb-4 overflow-hidden">
+        <div
+          className="border rounded-lg mb-4 overflow-hidden"
+          style={{ backgroundColor: t.cardBg, borderColor: t.cardBorder }}
+        >
           <div className="p-4 flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-md bg-gray-100 flex items-center justify-center">
+              <div
+                className="w-9 h-9 rounded-md flex items-center justify-center"
+                style={{ backgroundColor: t.iconBg }}
+              >
                 <Cloud size={18} className="text-gray-600" />
               </div>
               <div>
                 <div className="flex items-center gap-2">
-                  <span className="text-sm font-medium text-gray-900">
+                  <span className="text-sm font-medium" style={{ color: t.textPrimary }}>
                     GitHub Gist 同步
                   </span>
                   <span className="px-1.5 py-0.5 text-[10px] font-medium text-green-700 bg-green-50 rounded border border-green-200">
                     Beta
                   </span>
                 </div>
-                <p className="text-xs text-gray-500 mt-0.5">
+                <p className="text-xs mt-0.5" style={{ color: t.textMuted }}>
                   通过 GitHub Gist 在多台设备间同步数据
                 </p>
               </div>
@@ -476,8 +549,8 @@ export default function SyncView() {
 
           {syncSettings.github.enabled && (
             <div className="px-4 pb-4">
-              <div className="flex items-center justify-between py-3 border-t border-gray-100">
-                <span className="text-sm text-gray-700">GitHub Token</span>
+              <div className="flex items-center justify-between py-3 border-t">
+                <span className="text-sm" style={{ color: t.textSecondary }}>GitHub Token</span>
                 <PasswordInput
                   value={syncSettings.github.token}
                   onChange={(v) =>
@@ -486,15 +559,15 @@ export default function SyncView() {
                   placeholder="输入 GitHub Token"
                 />
               </div>
-              <div className="flex items-center justify-between py-3 border-t border-gray-100">
-                <span className="text-sm text-gray-700">同步方式</span>
+              <div className="flex items-center justify-between py-3 border-t" style={{ borderColor: t.dividerColor }}>
+                <span className="text-sm" style={{ color: t.textSecondary }}>同步方式</span>
                 <GistSyncButtons />
               </div>
-              <div className="flex items-center justify-between py-3 border-t border-gray-100">
+              <div className="flex items-center justify-between py-3 border-t" style={{ borderColor: t.dividerColor }}>
                 <div>
-                  <span className="text-sm text-gray-700">自动同步</span>
+                  <span className="text-sm" style={{ color: t.textSecondary }}>自动同步</span>
                   {syncSettings.github.lastSyncTime && (
-                    <div className="text-xs text-gray-400 mt-1">
+                    <div className="text-xs mt-1" style={{ color: t.textMuted }}>
                       上次成功同步：
                       {new Date(syncSettings.github.lastSyncTime).toLocaleString('zh-CN', {
                         year: 'numeric',
@@ -526,31 +599,37 @@ export default function SyncView() {
         </div>
 
         {/* WebDAV 同步卡片 */}
-        <div className="border border-gray-200 rounded-lg bg-white">
+        <div
+          className="border rounded-lg"
+          style={{ backgroundColor: t.cardBg, borderColor: t.cardBorder }}
+        >
           <div className="p-4 flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-md bg-gray-100 flex items-center justify-center">
+              <div
+                className="w-9 h-9 rounded-md flex items-center justify-center"
+                style={{ backgroundColor: t.iconBg }}
+              >
                 <HardDrive size={18} className="text-gray-600" />
               </div>
               <div>
                 <div className="flex items-center gap-2">
-                  <span className="text-sm font-medium text-gray-900">
+                  <span className="text-sm font-medium" style={{ color: t.textPrimary }}>
                     WebDAV 同步
                   </span>
                   <span className="px-1.5 py-0.5 text-[10px] font-medium text-green-700 bg-green-50 rounded border border-green-200">
                     Beta
                   </span>
                   <div className="relative group">
-                    <HelpCircle size={14} className="text-gray-400 hover:text-gray-600 cursor-help transition-colors" />
-                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 text-white text-xs rounded-md shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-150 whitespace-nowrap z-50">
+                    <HelpCircle size={14} className="cursor-help transition-colors" style={{ color: t.textMuted }} />
+                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 text-white text-xs rounded-md shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-150 whitespace-nowrap z-50" style={{ backgroundColor: t.tooltipBg }}>
                       <div className="font-medium mb-1">支持的 WebDAV 服务：</div>
                       <div>坚果云jianguoyun · infini-cloud · teracloud · yandex · box · 4shared</div>
                       <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-px border-4 border-transparent border-t-gray-900"></div>
                     </div>
                   </div>
                 </div>
-                <p className="text-xs text-gray-500 mt-0.5">
-                  通过 WebDAV 协议连接私有云存储
+                <p className="text-xs mt-0.5" style={{ color: t.textMuted }}>
+                  通过 WebDAV 协议同步数据（支持坚果云、Infini‑Cloud 等）
                 </p>
               </div>
             </div>
@@ -564,8 +643,8 @@ export default function SyncView() {
 
           {syncSettings.webdav.enabled && (
             <div className="px-4 pb-4">
-              <div className="flex items-center justify-between py-3 border-t border-gray-100">
-                <span className="text-sm text-gray-700">WebDAV URL</span>
+              <div className="flex items-center justify-between py-3 border-t" style={{ borderColor: t.dividerColor }}>
+                <span className="text-sm" style={{ color: t.textSecondary }}>WebDAV URL</span>
                 <input
                   type="text"
                   value={syncSettings.webdav.url}
@@ -575,11 +654,12 @@ export default function SyncView() {
                     })
                   }
                   placeholder="输入 WebDAV 地址"
-                  className="w-80 px-3 py-2 text-sm border border-gray-200 rounded-md outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
+                  className="w-80 px-3 py-2 text-sm border rounded-md outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
+                  style={{ borderColor: t.inputBorder, backgroundColor: t.inputBg, color: t.textPrimary }}
                 />
               </div>
-              <div className="flex items-center justify-between py-3 border-t border-gray-100">
-                <span className="text-sm text-gray-700">WebDAV 用户名</span>
+              <div className="flex items-center justify-between py-3 border-t" style={{ borderColor: t.dividerColor }}>
+                <span className="text-sm" style={{ color: t.textSecondary }}>WebDAV 用户名</span>
                 <input
                   type="text"
                   value={syncSettings.webdav.username}
@@ -589,11 +669,12 @@ export default function SyncView() {
                     })
                   }
                   placeholder="输入用户名"
-                  className="w-80 px-3 py-2 text-sm border border-gray-200 rounded-md outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
+                  className="w-80 px-3 py-2 text-sm border rounded-md outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
+                  style={{ borderColor: t.inputBorder, backgroundColor: t.inputBg, color: t.textPrimary }}
                 />
               </div>
-              <div className="flex items-center justify-between py-3 border-t border-gray-100">
-                <span className="text-sm text-gray-700">WebDAV 密码</span>
+              <div className="flex items-center justify-between py-3 border-t" style={{ borderColor: t.dividerColor }}>
+                <span className="text-sm" style={{ color: t.textSecondary }}>WebDAV 密码</span>
                 <PasswordInput
                   value={syncSettings.webdav.password}
                   onChange={(v) =>
@@ -604,15 +685,15 @@ export default function SyncView() {
                   placeholder="应用专用密码"
                 />
               </div>
-              <div className="flex items-center justify-between py-3 border-t border-gray-100">
-                <span className="text-sm text-gray-700">同步方式</span>
+              <div className="flex items-center justify-between py-3 border-t" style={{ borderColor: t.dividerColor }}>
+                <span className="text-sm" style={{ color: t.textSecondary }}>同步方式</span>
                 <WebDAVSyncButtons />
               </div>
-              <div className="flex items-center justify-between py-3 border-t border-gray-100">
+              <div className="flex items-center justify-between py-3 border-t" style={{ borderColor: t.dividerColor }}>
                 <div>
-                  <span className="text-sm text-gray-700">自动同步</span>
+                  <span className="text-sm" style={{ color: t.textSecondary }}>自动同步</span>
                   {syncSettings.webdav.lastSyncTime && (
-                    <div className="text-xs text-gray-400 mt-1">
+                    <div className="text-xs mt-1" style={{ color: t.textMuted }}>
                       上次成功同步：
                       {new Date(syncSettings.webdav.lastSyncTime).toLocaleString('zh-CN', {
                         year: 'numeric',

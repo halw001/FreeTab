@@ -1,6 +1,8 @@
 import { create } from 'zustand';
 import type { Space, TabGroup, TabItem } from '../types';
 import type { ThemeId } from '../themes';
+import type { Locale } from '../i18n';
+import { detectBrowserLocale } from '../i18n';
 
 export type ViewType = 'home' | 'sync' | 'settings';
 
@@ -27,12 +29,14 @@ interface TabState {
   currentSpaceId: string;
   currentView: ViewType;
   theme: ThemeId;
+  locale: Locale;
   lastModified: number;
   syncSettings: SyncSettings;
   addSpace: (name: string) => void;
   setCurrentSpace: (id: string) => void;
   setCurrentView: (view: ViewType) => void;
   setTheme: (theme: ThemeId) => void;
+  setLocale: (locale: Locale) => void;
   renameSpace: (spaceId: string, newName: string) => void;
   deleteSpace: (spaceId: string) => void;
   reorderSpaces: (activeId: string, overId: string) => void;
@@ -76,7 +80,7 @@ const defaultSyncSettings: SyncSettings = {
   webdav: { enabled: false, url: '', username: '', password: '', autoSync: false },
 };
 
-function loadState(): { spaces: Space[]; currentSpaceId: string; currentView: ViewType; theme: ThemeId; lastModified: number; syncSettings: SyncSettings } | null {
+function loadState(): { spaces: Space[]; currentSpaceId: string; currentView: ViewType; theme: ThemeId; locale: Locale; lastModified: number; syncSettings: SyncSettings } | null {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return null;
@@ -93,7 +97,7 @@ function loadState(): { spaces: Space[]; currentSpaceId: string; currentView: Vi
   }
 }
 
-function saveState(state: { spaces: Space[]; currentSpaceId: string; currentView: ViewType; theme: ThemeId; lastModified: number; syncSettings: SyncSettings }) {
+function saveState(state: { spaces: Space[]; currentSpaceId: string; currentView: ViewType; theme: ThemeId; locale: Locale; lastModified: number; syncSettings: SyncSettings }) {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify({ state }));
     // 同步写入 chrome.storage.local，供 Background Service Worker 读取
@@ -189,6 +193,7 @@ export const useTabStore = create<TabState>((set) => ({
   currentSpaceId: saved?.currentSpaceId ?? defaultSpace.id,
   currentView: saved?.currentView ?? 'home',
   theme: saved?.theme ?? 'ocean',
+  locale: saved?.locale ?? detectBrowserLocale(),
   lastModified: saved?.lastModified ?? 0,
   syncSettings: saved?.syncSettings ?? defaultSyncSettings,
 
@@ -226,6 +231,12 @@ export const useTabStore = create<TabState>((set) => ({
   setTheme: (theme: ThemeId) =>
     set((state) => {
       const nextState = { ...state, theme };
+      saveState(nextState);
+      return nextState;
+    }),
+  setLocale: (locale: Locale) =>
+    set((state) => {
+      const nextState = { ...state, locale };
       saveState(nextState);
       return nextState;
     }),

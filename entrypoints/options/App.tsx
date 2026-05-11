@@ -21,6 +21,7 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 import { useTabStore } from '../../src/store/useTabStore';
 import { getTheme } from '../../src/themes';
+import { t } from '../../src/i18n';
 import type { Space } from '../../src/types';
 import MainContent from './MainContent';
 import ActiveTabsSidebar from './ActiveTabsSidebar';
@@ -62,8 +63,12 @@ function SortableSpaceItem({
 }) {
   const deleteSpace = useTabStore((state) => state.deleteSpace);
   const theme = useTabStore((state) => state.theme);
-  const t = getTheme(theme);
+  const locale = useTabStore((state) => state.locale);
+  const themeColors = getTheme(theme);
   const [isHovered, setIsHovered] = useState(false);
+
+  const tr = (key: Parameters<typeof t>[1], params?: Record<string, string | number>) =>
+    t(locale, key, params);
 
   const sortableData = useMemo(() => ({ type: 'Space' as const, space }), [space]);
 
@@ -87,9 +92,9 @@ function SortableSpaceItem({
       style={{
         ...style,
         backgroundColor: isActive
-          ? t.sidebarActiveBg
+          ? themeColors.sidebarActiveBg
           : isHovered
-            ? t.sidebarHoverBg
+            ? themeColors.sidebarHoverBg
             : 'transparent',
       }}
       className={`group flex items-center justify-between px-3 py-2 rounded-md text-sm transition-colors ${
@@ -102,7 +107,7 @@ function SortableSpaceItem({
         onClick={onSelect}
         className="flex-1 text-left truncate"
         style={{
-          color: isActive ? t.sidebarActiveText : t.sidebarText,
+          color: isActive ? themeColors.sidebarActiveText : themeColors.sidebarText,
           fontWeight: isActive ? 600 : 400,
           borderRadius: '0.375rem',
           padding: '0.25rem 0.5rem',
@@ -115,7 +120,7 @@ function SortableSpaceItem({
         {...attributes}
         {...listeners}
         className="cursor-grab active:cursor-grabbing p-1 opacity-0 group-hover:opacity-100 transition-opacity"
-        style={{ color: t.sidebarTextMuted }}
+        style={{ color: themeColors.sidebarTextMuted }}
       >
         <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor">
           <circle cx="2" cy="3" r="1.2" />
@@ -130,8 +135,8 @@ function SortableSpaceItem({
         <AlertDialogTrigger asChild>
           <button
             className="p-1 hover:text-red-600 opacity-0 group-hover:opacity-100 transition-opacity"
-            style={{ color: t.textMuted }}
-            title="删除空间"
+            style={{ color: themeColors.textMuted }}
+            title={tr('deleteSpace')}
             onClick={(e) => e.stopPropagation()}
           >
             <Trash2 size={14} />
@@ -139,21 +144,21 @@ function SortableSpaceItem({
         </AlertDialogTrigger>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>确定要删除此空间吗？</AlertDialogTitle>
+            <AlertDialogTitle>{tr('deleteSpaceConfirmTitle')}</AlertDialogTitle>
             <AlertDialogDescription>
               {space.groups.length > 0 ? (
                 <span className="text-red-600 font-medium">
-                  此空间内包含 {space.groups.length} 个标签组，删除后将永久丢失，确定要删除吗？
+                  {tr('deleteSpaceConfirmDescWithGroups', { count: space.groups.length })}
                 </span>
               ) : (
-                '此操作无法撤销，确定要删除此空间吗？'
+                tr('deleteSpaceConfirmDesc')
               )}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>取消</AlertDialogCancel>
+            <AlertDialogCancel>{tr('cancel')}</AlertDialogCancel>
             <AlertDialogAction onClick={() => deleteSpace(space.id)}>
-              确认删除
+              {tr('confirmDelete')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -172,7 +177,11 @@ function Sidebar() {
   const addSpace = useTabStore((state) => state.addSpace);
   const reorderSpaces = useTabStore((state) => state.reorderSpaces);
   const theme = useTabStore((state) => state.theme);
-  const t = getTheme(theme);
+  const locale = useTabStore((state) => state.locale);
+  const themeColors = getTheme(theme);
+
+  const tr = (key: Parameters<typeof t>[1], params?: Record<string, string | number>) =>
+    t(locale, key, params);
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [newSpaceName, setNewSpaceName] = useState('');
@@ -221,24 +230,24 @@ function Sidebar() {
     <aside
       className="w-64 h-screen flex flex-col border-r flex-shrink-0"
       style={{
-        backgroundColor: t.sidebarBg,
-        borderColor: t.sidebarBorder,
+        backgroundColor: themeColors.sidebarBg,
+        borderColor: themeColors.sidebarBorder,
       }}
     >
       {/* 顶部：应用名称 + 添加按钮 */}
       <div className="flex items-center justify-between px-4 py-3">
-        <span className="text-lg font-bold" style={{ color: t.sidebarText }}>FreeTab</span>
+        <span className="text-lg font-bold" style={{ color: themeColors.sidebarText }}>FreeTab</span>
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogTrigger asChild>
             <button
               className="p-1.5 rounded-md transition-colors"
-              style={{ color: t.sidebarTextMuted, ':hover': { color: t.sidebarText, backgroundColor: t.sidebarHoverBg } as any }}
+              style={{ color: themeColors.sidebarTextMuted, ':hover': { color: themeColors.sidebarText, backgroundColor: themeColors.sidebarHoverBg } as any }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.color = t.sidebarText;
-                e.currentTarget.style.backgroundColor = t.sidebarHoverBg;
+                e.currentTarget.style.color = themeColors.sidebarText;
+                e.currentTarget.style.backgroundColor = themeColors.sidebarHoverBg;
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.color = t.sidebarTextMuted;
+                e.currentTarget.style.color = themeColors.sidebarTextMuted;
                 e.currentTarget.style.backgroundColor = 'transparent';
               }}
             >
@@ -247,26 +256,26 @@ function Sidebar() {
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>创建新空间</DialogTitle>
+              <DialogTitle>{tr('createNewSpace')}</DialogTitle>
             </DialogHeader>
             <div className="space-y-4 pt-2">
               <div className="space-y-2">
-                <label className="text-sm font-medium" style={{ color: t.textSecondary }}>
-                  空间名称
+                <label className="text-sm font-medium" style={{ color: themeColors.textSecondary }}>
+                  {tr('spaceName')}
                 </label>
                 <Input
                   value={newSpaceName}
                   onChange={(e) => setNewSpaceName(e.target.value)}
                   onKeyDown={handleKeyDown}
-                  placeholder="输入空间名称"
+                  placeholder={tr('spaceNamePlaceholder')}
                   autoFocus
                 />
               </div>
               <div className="flex justify-end gap-2">
                 <Button variant="outline" onClick={() => setDialogOpen(false)}>
-                  取消
+                  {tr('cancel')}
                 </Button>
-                <Button onClick={handleCreateSpace}>确定</Button>
+                <Button onClick={handleCreateSpace}>{tr('confirm')}</Button>
               </div>
             </div>
           </DialogContent>
@@ -302,8 +311,8 @@ function Sidebar() {
             <div
               className="px-3 py-2 rounded-md text-sm font-semibold shadow-lg"
               style={{
-                backgroundColor: t.sidebarActiveBg,
-                color: t.sidebarActiveText,
+                backgroundColor: themeColors.sidebarActiveBg,
+                color: themeColors.sidebarActiveText,
               }}
             >
               {activeSpace.name}
@@ -313,21 +322,21 @@ function Sidebar() {
       </DndContext>
 
       {/* 底部：设置按钮 */}
-      <div className="px-3 py-3" style={{ borderColor: t.sidebarBorder, borderTopWidth: '1px', borderTopStyle: 'solid' }}>
+      <div className="px-3 py-3" style={{ borderColor: themeColors.sidebarBorder, borderTopWidth: '1px', borderTopStyle: 'solid' }}>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <button
               className="flex items-center gap-2 w-full px-3 py-2 rounded-md text-sm transition-colors"
-              style={{ color: t.sidebarTextMuted }}
+              style={{ color: themeColors.sidebarTextMuted }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = t.sidebarHoverBg;
+                e.currentTarget.style.backgroundColor = themeColors.sidebarHoverBg;
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.backgroundColor = 'transparent';
               }}
             >
               <Settings size={16} />
-              <span>设置</span>
+              <span>{tr('settings')}</span>
             </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent side="top" align="start" className="w-48">
@@ -338,8 +347,8 @@ function Sidebar() {
               }}
               className="flex items-center gap-2 cursor-pointer"
             >
-              <Cog size={14} style={{ color: t.textMuted }} />
-              <span>设置</span>
+              <Cog size={14} style={{ color: themeColors.textMuted }} />
+              <span>{tr('settings')}</span>
             </DropdownMenuItem>
             <DropdownMenuItem
               onClick={() => {
@@ -348,8 +357,8 @@ function Sidebar() {
               }}
               className="flex items-center gap-2 cursor-pointer"
             >
-              <Cloud size={14} style={{ color: t.textMuted }} />
-              <span>备份与同步</span>
+              <Cloud size={14} style={{ color: themeColors.textMuted }} />
+              <span>{tr('backupAndSync')}</span>
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
@@ -371,21 +380,21 @@ interface DragItemData {
 
 function DragOverlayCard({ item }: { item: DragItemData }) {
   const theme = useTabStore((state) => state.theme);
-  const t = getTheme(theme);
+  const themeColors = getTheme(theme);
   return (
     <div
       className="flex items-center gap-2 px-3 py-2.5 w-64 border rounded-md shadow-2xl opacity-90 cursor-grabbing"
       style={{
-        backgroundColor: t.cardBg,
-        borderColor: t.cardBorder,
+        backgroundColor: themeColors.cardBg,
+        borderColor: themeColors.cardBorder,
       }}
     >
       {item.tab.favIconUrl ? (
         <img src={item.tab.favIconUrl} alt="" className="w-4 h-4 flex-shrink-0" />
       ) : (
-        <Globe size={14} className="flex-shrink-0" style={{ color: t.textMuted }} />
+        <Globe size={14} className="flex-shrink-0" style={{ color: themeColors.textMuted }} />
       )}
-      <span className="flex-1 min-w-0 text-sm truncate" style={{ color: t.textSecondary }}>
+      <span className="flex-1 min-w-0 text-sm truncate" style={{ color: themeColors.textSecondary }}>
         {item.tab.title}
       </span>
     </div>
@@ -396,7 +405,7 @@ function App() {
   const currentSpaceId = useTabStore((state) => state.currentSpaceId);
   const currentView = useTabStore((state) => state.currentView);
   const theme = useTabStore((state) => state.theme);
-  const t = getTheme(theme);
+  const themeColors = getTheme(theme);
   const moveTab = useTabStore((state) => state.moveTab);
   const addTabToGroup = useTabStore((state) => state.addTabToGroup);
   const saveCurrentWindowTabs = useTabStore(
@@ -597,7 +606,7 @@ function App() {
       onDragEnd={handleDragEnd}
       onDragCancel={handleDragCancel}
     >
-      <div className="h-screen flex" style={{ backgroundColor: t.mainBg }}>
+      <div className="h-screen flex" style={{ backgroundColor: themeColors.mainBg }}>
         <Sidebar />
         <MainContent />
         {currentView === 'home' && (

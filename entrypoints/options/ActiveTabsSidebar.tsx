@@ -4,6 +4,7 @@ import { useDraggable } from '@dnd-kit/core';
 import { CSS } from '@dnd-kit/utilities';
 import { useTabStore } from '../../src/store/useTabStore';
 import { getTheme } from '../../src/themes';
+import { t } from '../../src/i18n';
 
 interface ActiveTab {
   id: number;
@@ -20,7 +21,7 @@ function DraggableActiveTab({ tab }: { tab: ActiveTab }) {
     });
 
   const theme = useTabStore((state) => state.theme);
-  const t = getTheme(theme);
+  const themeColors = getTheme(theme);
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -31,9 +32,9 @@ function DraggableActiveTab({ tab }: { tab: ActiveTab }) {
       ref={setNodeRef}
       style={{
         ...style,
-        backgroundColor: t.cardBg,
-        borderColor: t.cardBorder,
-        boxShadow: t.cardShadow,
+        backgroundColor: themeColors.cardBg,
+        borderColor: themeColors.cardBorder,
+        boxShadow: themeColors.cardShadow,
       }}
       {...attributes}
       {...listeners}
@@ -51,11 +52,11 @@ function DraggableActiveTab({ tab }: { tab: ActiveTab }) {
           }}
         />
       ) : (
-        <Globe size={14} className="flex-shrink-0" style={{ color: t.textMuted }} />
+        <Globe size={14} className="flex-shrink-0" style={{ color: themeColors.textMuted }} />
       )}
       <span
         className="flex-1 min-w-0 text-sm truncate"
-        style={{ color: t.textSecondary }}
+        style={{ color: themeColors.textSecondary }}
         title={tab.title}
       >
         {tab.title}
@@ -73,7 +74,11 @@ export default function ActiveTabsSidebar({
 }: ActiveTabsSidebarProps) {
   const [activeTabs, setActiveTabs] = useState<ActiveTab[]>([]);
   const theme = useTabStore((state) => state.theme);
-  const t = getTheme(theme);
+  const locale = useTabStore((state) => state.locale);
+  const themeColors = getTheme(theme);
+
+  const tr = (key: Parameters<typeof t>[1], params?: Record<string, string | number>) =>
+    t(locale, key, params);
 
   const fetchTabs = useCallback(async () => {
     const tabs = await chrome.tabs.query({ currentWindow: true });
@@ -88,7 +93,7 @@ export default function ActiveTabsSidebar({
     setActiveTabs(
       filtered.map((tab) => ({
         id: tab.id!,
-        title: tab.title || 'Untitled',
+        title: tab.title || tr('unknown'),
         url: tab.url || '',
         favIconUrl: tab.favIconUrl,
       })),
@@ -117,45 +122,45 @@ export default function ActiveTabsSidebar({
     <aside
       className="w-80 h-screen flex flex-col border-l flex-shrink-0"
       style={{
-        backgroundColor: t.mainBg,
-        borderColor: t.headerBorder,
+        backgroundColor: themeColors.mainBg,
+        borderColor: themeColors.headerBorder,
       }}
     >
       {/* 顶部：标题 + 保存按钮 */}
       <div
         className="px-4 py-4 border-b"
         style={{
-          backgroundColor: t.headerBg,
-          borderColor: t.headerBorder,
+          backgroundColor: themeColors.headerBg,
+          borderColor: themeColors.headerBorder,
         }}
       >
-        <h2 className="text-sm font-bold mb-3" style={{ color: t.textPrimary }}>
-          当前打开的标签页
+        <h2 className="text-sm font-bold mb-3" style={{ color: themeColors.textPrimary }}>
+          {tr('currentTabs')}
         </h2>
         <button
           onClick={onSaveAll}
           className="w-full flex items-center justify-center gap-2 px-3 py-2 text-sm font-medium rounded-lg transition-colors"
           style={{
-            backgroundColor: t.buttonPrimaryBg,
-            color: t.buttonPrimaryText,
+            backgroundColor: themeColors.buttonPrimaryBg,
+            color: themeColors.buttonPrimaryText,
           }}
           onMouseEnter={(e) => {
-            e.currentTarget.style.backgroundColor = t.buttonPrimaryHover;
+            e.currentTarget.style.backgroundColor = themeColors.buttonPrimaryHover;
           }}
           onMouseLeave={(e) => {
-            e.currentTarget.style.backgroundColor = t.buttonPrimaryBg;
+            e.currentTarget.style.backgroundColor = themeColors.buttonPrimaryBg;
           }}
         >
           <span>📥</span>
-          <span>保存全部</span>
+          <span>{tr('saveAll')}</span>
         </button>
       </div>
 
       {/* 标签列表 */}
       <div className="flex-1 overflow-y-auto p-3 space-y-2">
         {activeTabs.length === 0 ? (
-          <p className="text-center text-sm py-8" style={{ color: t.emptyText }}>
-            没有可收纳的标签页
+          <p className="text-center text-sm py-8" style={{ color: themeColors.emptyText }}>
+            {tr('noTabsToSave')}
           </p>
         ) : (
           activeTabs.map((tab) => <DraggableActiveTab key={tab.id} tab={tab} />)

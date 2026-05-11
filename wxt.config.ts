@@ -9,6 +9,7 @@ export default defineConfig({
   }),
   manifest: {
     name: 'FreeTab',
+    default_locale: 'en',
     action: {
       default_popup: undefined,
     },

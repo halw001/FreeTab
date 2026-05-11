@@ -7,6 +7,7 @@ import {
 } from '../../src/components/ui/Dialog';
 import { useTabStore } from '../../src/store/useTabStore';
 import { getTheme } from '../../src/themes';
+import { t } from '../../src/i18n';
 import type { TabItem } from '../../src/types';
 
 interface SearchResult {
@@ -22,13 +23,19 @@ interface SearchDialogProps {
   onOpenChange: (open: boolean) => void;
 }
 
-export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) {
+export default function SearchDialog({
+  open,
+  onOpenChange,
+}: SearchDialogProps) {
   const spaces = useTabStore((state) => state.spaces);
-  const deleteTab = useTabStore((state) => state.deleteTab);
   const theme = useTabStore((state) => state.theme);
-  const t = getTheme(theme);
+  const locale = useTabStore((state) => state.locale);
+  const themeColors = getTheme(theme);
   const [query, setQuery] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
+
+  const tr = (key: Parameters<typeof t>[1], params?: Record<string, string | number>) =>
+    t(locale, key, params);
 
   useEffect(() => {
     if (open) {
@@ -79,23 +86,23 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
         className="max-w-2xl p-0 gap-0 overflow-hidden"
-        style={{ backgroundColor: t.cardBg, borderColor: t.cardBorder }}
+        style={{ backgroundColor: themeColors.cardBg, borderColor: themeColors.cardBorder }}
       >
-        <DialogTitle className="sr-only">搜索标签页</DialogTitle>
+        <DialogTitle className="sr-only">{tr('searchTabs')}</DialogTitle>
         {/* 搜索输入框 */}
         <div
           className="flex items-center gap-3 px-4 py-3 border-b"
-          style={{ borderColor: t.dividerColor }}
+          style={{ borderColor: themeColors.dividerColor }}
         >
-          <Search size={20} className="flex-shrink-0" style={{ color: t.textMuted }} />
+          <Search size={20} className="flex-shrink-0" style={{ color: themeColors.textMuted }} />
           <input
             ref={inputRef}
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="搜索所有标签页..."
+            placeholder={tr('searchPlaceholder')}
             className="flex-1 bg-transparent outline-none text-base placeholder:text-gray-400"
-            style={{ color: t.textPrimary }}
+            style={{ color: themeColors.textPrimary }}
           />
         </div>
 
@@ -104,11 +111,11 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
           {filtered.length === 0 ? (
             <div
               className="flex flex-col items-center justify-center py-12"
-              style={{ color: t.textMuted }}
+              style={{ color: themeColors.textMuted }}
             >
               <Search size={32} className="mb-3 opacity-50" />
               <p className="text-sm">
-                {query.trim() ? '未找到匹配的标签页' : '输入关键词开始搜索'}
+                {query.trim() ? tr('noResults') : tr('startSearching')}
               </p>
             </div>
           ) : (
@@ -119,7 +126,7 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
                   className="group flex items-center gap-3 px-4 py-3 cursor-pointer transition-colors"
                   onClick={() => handleOpenTab(item.tab.url)}
                   onMouseEnter={(e) => {
-                    e.currentTarget.style.backgroundColor = t.sidebarHoverBg;
+                    e.currentTarget.style.backgroundColor = themeColors.sidebarHoverBg;
                   }}
                   onMouseLeave={(e) => {
                     e.currentTarget.style.backgroundColor = 'transparent';
@@ -139,9 +146,9 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
                     ) : (
                       <div
                         className="w-5 h-5 rounded-full flex items-center justify-center"
-                        style={{ backgroundColor: t.sidebarActiveBg }}
+                        style={{ backgroundColor: themeColors.sidebarActiveBg }}
                       >
-                        <span style={{ color: t.textSecondary, fontSize: '0.625rem' }}>
+                        <span style={{ color: themeColors.textSecondary, fontSize: '0.625rem' }}>
                           {item.tab.title.charAt(0).toUpperCase()}
                         </span>
                       </div>
@@ -150,10 +157,10 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
 
                   {/* 文字内容 */}
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium truncate" style={{ color: t.textPrimary }}>
+                    <p className="text-sm font-medium truncate" style={{ color: themeColors.textPrimary }}>
                       {item.tab.title}
                     </p>
-                    <p className="text-xs truncate mt-0.5" style={{ color: t.textMuted }}>
+                    <p className="text-xs truncate mt-0.5" style={{ color: themeColors.textMuted }}>
                       {item.spaceName} &gt; {item.groupTitle}
                     </p>
                   </div>
@@ -164,8 +171,8 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
                       handleDelete(e, item.spaceId, item.groupId, item.tab.id)
                     }
                     className="p-1.5 hover:text-red-600 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
-                    style={{ color: t.textMuted }}
-                    title="删除"
+                    style={{ color: themeColors.textMuted }}
+                    title={tr('delete')}
                   >
                     <Trash2 size={14} />
                   </button>
@@ -179,9 +186,9 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
         {filtered.length > 0 && (
           <div
             className="px-4 py-2 border-t text-xs"
-            style={{ borderColor: t.dividerColor, color: t.textMuted }}
+            style={{ borderColor: themeColors.dividerColor, color: themeColors.textMuted }}
           >
-            共 {filtered.length} 个结果
+            {tr('resultsCount', { count: filtered.length })}
           </div>
         )}
       </DialogContent>

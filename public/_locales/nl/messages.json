@@ -1,8 +1,11 @@
 {
   "extName": {
-    "message": "FreeTab"
+    "message": "FreeTab - Gratis tabbladen opslaan & syncen"
   },
   "extDescription": {
-    "message": "Een elegante, gratis tabbladbeheerder om uw tabbladen te organiseren en synchroniseren"
+    "message": "Een 100% gratis tabblad-opslag met lokale back-ups en naadloze online synchronisatie via GitHub Gist en WebDAV."
+  },
+  "actionTitle": {
+    "message": "FreeTab - Tabbladbeheer"
   }
 }

@@ -1,4 +1,11 @@
 {
-  "extName": { "message": "FreeTab" },
-  "extDescription": { "message": "智慧瀏覽器標籤頁管理器" }
+  "extName": {
+    "message": "FreeTab - 永久免費的標籤頁儲存與同步工具"
+  },
+  "extDescription": {
+    "message": "永久免費的標籤頁儲存工具，支援本機備份、GitHub Gist 與 WebDAV 線上同步。"
+  },
+  "actionTitle": {
+    "message": "FreeTab - 標籤頁管理"
+  }
 }

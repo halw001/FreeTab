@@ -1,8 +1,11 @@
 {
   "extName": {
-    "message": "FreeTab"
+    "message": "FreeTab - Darmowe zapisywanie i synchronizacja kart"
   },
   "extDescription": {
-    "message": "Elegancki, darmowy menedżer kart do organizowania i synchronizowania kart"
+    "message": "W 100% darmowy menedżer kart z lokalną kopią zapasową i synchronizacją online przez GitHub Gist i WebDAV."
+  },
+  "actionTitle": {
+    "message": "FreeTab - Menedżer kart"
   }
 }

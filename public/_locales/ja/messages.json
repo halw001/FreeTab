@@ -1,8 +1,11 @@
 {
   "extName": {
-    "message": "FreeTab"
+    "message": "FreeTab - 完全無料のタブ保存＆同期ツール"
   },
   "extDescription": {
-    "message": "タブを整理・同期するためのエレガントで無料のタブマネージャー"
+    "message": "完全無料のタブ保存ツール。ローカルバックアップ、GitHub GistとWebDAVによるオンライン同期に対応。"
+  },
+  "actionTitle": {
+    "message": "FreeTab - タブ管理"
   }
 }

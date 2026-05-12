@@ -1,8 +1,11 @@
 {
   "extName": {
-    "message": "FreeTab"
+    "message": "FreeTab - Guarda y sincroniza pestañas gratis"
   },
   "extDescription": {
-    "message": "Un gestor de pestañas elegante y gratuito para organizar y sincronizar sus pestañas"
+    "message": "Un guarda pestañas 100% gratuito con copia de seguridad local y sincronización en línea vía GitHub Gist y WebDAV."
+  },
+  "actionTitle": {
+    "message": "FreeTab - Gestor de pestañas"
   }
 }

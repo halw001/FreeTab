@@ -1,8 +1,11 @@
 {
   "extName": {
-    "message": "FreeTab"
+    "message": "FreeTab - Lưu & đồng bộ tab miễn phí"
   },
   "extDescription": {
-    "message": "Trình quản lý tab miễn phí, thanh lịch để sắp xếp và đồng bộ tab của bạn"
+    "message": "Công cụ lưu tab 100% miễn phí với sao lưu cục bộ và đồng bộ trực tuyến qua GitHub Gist và WebDAV."
+  },
+  "actionTitle": {
+    "message": "FreeTab - Quản lý tab"
   }
 }

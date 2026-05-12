@@ -8,10 +8,12 @@ export default defineConfig({
     plugins: [tailwindcss()],
   }),
   manifest: {
-    name: 'FreeTab',
+    name: '__MSG_extName__',
+    description: '__MSG_extDescription__',
     default_locale: 'en',
     action: {
       default_popup: undefined,
+      default_title: '__MSG_actionTitle__',
     },
     permissions: ['alarms', 'storage'],
     optional_host_permissions: ['*://*/*'],

@@ -1,4 +1,11 @@
 {
-  "extName": { "message": "FreeTab" },
-  "extDescription": { "message": "智能浏览器标签页管理器" }
+  "extName": {
+    "message": "FreeTab - 永久免费的标签页保存与同步工具"
+  },
+  "extDescription": {
+    "message": "永久免费的标签页保存工具，支持本地备份、 Github Gist 和 WebDAV 在线同步。"
+  },
+  "actionTitle": {
+    "message": "FreeTab - 标签页管理"
+  }
 }

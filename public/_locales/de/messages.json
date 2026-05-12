@@ -1,8 +1,11 @@
 {
   "extName": {
-    "message": "FreeTab"
+    "message": "FreeTab - Kostenloser Tab-Speicher & Sync"
   },
   "extDescription": {
-    "message": "Ein eleganter, kostenloser Tab-Manager zum Organisieren und Synchronisieren Ihrer Tabs"
+    "message": "Ein 100% kostenloser Tab-Speicher mit lokalen Backups und nahtloser Online-Synchronisation via GitHub Gist und WebDAV."
+  },
+  "actionTitle": {
+    "message": "FreeTab - Tab-Manager"
   }
 }

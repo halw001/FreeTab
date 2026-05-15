@@ -1,6 +1,6 @@
 {
   "name": "freetab",
-  "description": "manifest.json description",
+  "description": "A 100% free tab saver featuring local backups and seamless online sync via GitHub Gist and WebDAV.",
   "private": true,
   "version": "1.0.1",
   "type": "module",

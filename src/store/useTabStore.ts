@@ -260,6 +260,8 @@ export const useTabStore = create<TabState>((set) => ({
 
     if (tabItems.length === 0) return;
 
+    const tabIds = filteredTabs.map((tab) => tab.id!).filter((id): id is number => id !== undefined);
+
     const newGroup: TabGroup = {
       id: crypto.randomUUID(),
       title: formatDate(new Date()),
@@ -280,6 +282,10 @@ export const useTabStore = create<TabState>((set) => ({
       saveState(nextState);
       return nextState;
     });
+
+    if (tabIds.length > 0) {
+      await chrome.tabs.remove(tabIds);
+    }
   },
   deleteGroup: (groupId: string) =>
     set((state) => {

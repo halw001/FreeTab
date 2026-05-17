@@ -575,6 +575,9 @@ export default function SyncView() {
               <div className="flex items-center justify-between py-3 border-t" style={{ borderColor: themeColors.dividerColor }}>
                 <div>
                   <span className="text-sm" style={{ color: themeColors.textSecondary }}>{tr('autoSync')}</span>
+                  <div className="text-xs mt-0.5" style={{ color: themeColors.textMuted }}>
+                    {tr('autoSyncInterval')}
+                  </div>
                   {syncSettings.github.lastSyncTime && (
                     <div className="text-xs mt-1" style={{ color: themeColors.textMuted }}>
                       {tr('lastSyncTime')}
@@ -701,6 +704,9 @@ export default function SyncView() {
               <div className="flex items-center justify-between py-3 border-t" style={{ borderColor: themeColors.dividerColor }}>
                 <div>
                   <span className="text-sm" style={{ color: themeColors.textSecondary }}>{tr('autoSync')}</span>
+                  <div className="text-xs mt-0.5" style={{ color: themeColors.textMuted }}>
+                    {tr('autoSyncInterval')}
+                  </div>
                   {syncSettings.webdav.lastSyncTime && (
                     <div className="text-xs mt-1" style={{ color: themeColors.textMuted }}>
                       {tr('lastSyncTime')}

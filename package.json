@@ -2,7 +2,7 @@
   "name": "freetab",
   "description": "A 100% free tab saver featuring local backups and seamless online sync via GitHub Gist and WebDAV.",
   "private": true,
-  "version": "1.0.1",
+  "version": "1.0.2",
   "type": "module",
   "scripts": {
     "dev": "wxt",

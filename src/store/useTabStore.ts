@@ -191,7 +191,7 @@ if (typeof chrome !== 'undefined' && chrome.storage?.onChanged) {
 export const useTabStore = create<TabState>((set) => ({
   spaces: saved?.spaces ?? [defaultSpace],
   currentSpaceId: saved?.currentSpaceId ?? defaultSpace.id,
-  currentView: saved?.currentView ?? 'home',
+  currentView: 'home',
   theme: saved?.theme ?? 'ocean',
   locale: saved?.locale ?? detectBrowserLocale(),
   lastModified: saved?.lastModified ?? 0,

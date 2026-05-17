@@ -15,7 +15,7 @@ export default defineConfig({
       default_popup: undefined,
       default_title: '__MSG_actionTitle__',
     },
-    permissions: ['alarms', 'storage'],
+    permissions: ['alarms', 'storage', 'tabs'],
     optional_host_permissions: ['*://*/*'],
     host_permissions: [
       '*://*.jianguoyun.com/*',

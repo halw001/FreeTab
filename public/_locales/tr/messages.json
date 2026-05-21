@@ -2,8 +2,8 @@
   "extName": {
     "message": "FreeTab - Ücretsiz Sekme Kaydetme ve Senkronizasyon"
   },
-  "extDescription": {
-    "message": "%100 ücretsiz sekme kaydedici. Yerel yedekleme, GitHub Gist ve WebDAV ile çevrimiçi senkronizasyon sunar."
+  "extensionDescription": {
+    "message": "Sonsuza kadar ücretsiz sekme yöneticisi. Yerel yedekleme ve GitHub Gist & WebDAV ile bulut senkronizasyonu."
   },
   "actionTitle": {
     "message": "FreeTab - Sekme Yöneticisi"

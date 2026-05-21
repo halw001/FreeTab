@@ -9,11 +9,22 @@ export default defineConfig({
   }),
   manifest: {
     name: '__MSG_extName__',
-    description: '__MSG_extDescription__',
+    description: '__MSG_extensionDescription__',
     default_locale: 'en',
     action: {
       default_popup: undefined,
       default_title: '__MSG_actionTitle__',
+      default_icon: {
+        '16': 'icon/16.png',
+        '24': 'icon/24.png',
+        '32': 'icon/32.png',
+      },
+    },
+    icons: {
+      '16': 'icon/16.png',
+      '32': 'icon/32.png',
+      '48': 'icon/48.png',
+      '128': 'icon/128.png',
     },
     permissions: ['alarms', 'storage', 'tabs'],
     optional_host_permissions: ['*://*/*'],

@@ -2,8 +2,8 @@
   "extName": {
     "message": "FreeTab - Salva e sincronizza schede gratis"
   },
-  "extDescription": {
-    "message": "Un salva-schede 100% gratuito con backup locale e sincronizzazione online tramite GitHub Gist e WebDAV."
+  "extensionDescription": {
+    "message": "Un gestore di schede gratuito per sempre con backup locale e sincronizzazione cloud tramite GitHub Gist & WebDAV."
   },
   "actionTitle": {
     "message": "FreeTab - Gestore schede"

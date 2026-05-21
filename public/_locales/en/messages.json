@@ -2,8 +2,8 @@
   "extName": {
     "message": "FreeTab - Free Tab Saver & Sync"
   },
-  "extDescription": {
-    "message": "A 100% free tab saver featuring local backups and seamless online sync via GitHub Gist and WebDAV."
+  "extensionDescription": {
+    "message": "A free-forever tab manager with local backups and cloud sync via GitHub Gist & WebDAV."
   },
   "actionTitle": {
     "message": "FreeTab - Tab Manager"

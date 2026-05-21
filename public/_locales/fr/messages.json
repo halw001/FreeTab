@@ -2,8 +2,8 @@
   "extName": {
     "message": "FreeTab - Sauvegarde et synchro d'onglets gratuite"
   },
-  "extDescription": {
-    "message": "Un sauvegardeur d'onglets 100% gratuit avec sauvegarde locale et synchronisation en ligne via GitHub Gist et WebDAV."
+  "extensionDescription": {
+    "message": "Un gestionnaire d'onglets gratuit à vie avec sauvegarde locale et synchronisation cloud via GitHub Gist & WebDAV."
   },
   "actionTitle": {
     "message": "FreeTab - Gestionnaire d'onglets"

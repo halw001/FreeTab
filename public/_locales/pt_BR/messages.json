@@ -2,8 +2,8 @@
   "extName": {
     "message": "FreeTab - Salvamento e sincronização de abas grátis"
   },
-  "extDescription": {
-    "message": "Um salvador de abas 100% gratuito com backup local e sincronização online via GitHub Gist e WebDAV."
+  "extensionDescription": {
+    "message": "Um gerenciador de abas gratuito para sempre com backup local e sincronização na nuvem via GitHub Gist & WebDAV."
   },
   "actionTitle": {
     "message": "FreeTab - Gerenciador de abas"

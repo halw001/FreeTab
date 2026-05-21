@@ -2,8 +2,8 @@
   "extName": {
     "message": "FreeTab - Lưu & đồng bộ tab miễn phí"
   },
-  "extDescription": {
-    "message": "Công cụ lưu tab 100% miễn phí với sao lưu cục bộ và đồng bộ trực tuyến qua GitHub Gist và WebDAV."
+  "extensionDescription": {
+    "message": "Công cụ quản lý tab miễn phí vĩnh viễn với sao lưu cục bộ và đồng bộ đám mây qua GitHub Gist & WebDAV."
   },
   "actionTitle": {
     "message": "FreeTab - Quản lý tab"

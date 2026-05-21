@@ -580,7 +580,7 @@ export default function SyncView() {
                   </div>
                   {syncSettings.github.lastSyncTime && (
                     <div className="text-xs mt-1" style={{ color: themeColors.textMuted }}>
-                      {tr('lastSyncTime')}
+                      {tr('lastSyncTime')}:{' '}
                       {new Date(syncSettings.github.lastSyncTime).toLocaleString('zh-CN', {
                         year: 'numeric',
                         month: '2-digit',
@@ -709,7 +709,7 @@ export default function SyncView() {
                   </div>
                   {syncSettings.webdav.lastSyncTime && (
                     <div className="text-xs mt-1" style={{ color: themeColors.textMuted }}>
-                      {tr('lastSyncTime')}
+                      {tr('lastSyncTime')}:{' '}
                       {new Date(syncSettings.webdav.lastSyncTime).toLocaleString('zh-CN', {
                         year: 'numeric',
                         month: '2-digit',

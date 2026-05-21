@@ -122,13 +122,9 @@ async function uploadRemoteState(
 
 function isLocalEmpty(spaces: Space[]): boolean {
   if (!spaces || spaces.length === 0) return true;
-  const totalTabs = spaces.reduce(
-    (sum, s) =>
-      sum +
-      s.groups.reduce((gSum, g) => gSum + g.tabs.length, 0),
-    0,
-  );
-  return totalTabs === 0;
+  // Only true for the fresh-install default state: exactly 1 space with 0 groups
+  if (spaces.length > 1) return false;
+  return spaces[0].groups.length === 0;
 }
 
 export async function performWebDAVAutoSync(): Promise<void> {
@@ -169,6 +165,7 @@ export async function performWebDAVAutoSync(): Promise<void> {
     const remoteLastModified = remote.lastModified;
 
     if (localEmpty) {
+      if (isLocalEmpty(remote.spaces)) return; // both sides are empty, nothing to sync
       state.spaces = remote.spaces;
       state.lastModified = remoteLastModified;
       webdav.lastSyncTime = now;

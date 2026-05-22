@@ -35,6 +35,7 @@ export default defineConfig({
       '*://webdav.yandex.com/*',
       '*://dav.box.com/*',
       '*://*.4shared.com/*',
+      '*://*.koofr.net/*',
       '*://api.github.com/*',
     ],
   },

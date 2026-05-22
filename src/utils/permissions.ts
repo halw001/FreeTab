@@ -9,3 +9,12 @@ export async function requestHostPermission(url: string): Promise<boolean> {
     return false;
   }
 }
+
+export async function hasHostPermission(url: string): Promise<boolean> {
+  try {
+    const origin = new URL(url).origin + '/*';
+    return await chrome.permissions.contains({ origins: [origin] });
+  } catch {
+    return false;
+  }
+}

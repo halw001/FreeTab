@@ -33,6 +33,21 @@ export async function uploadToWebDAV(
   });
 }
 
+export async function testWebDAVConnection(
+  url: string,
+  username: string,
+  password: string,
+): Promise<boolean> {
+  if (!url || !username || !password) return false;
+
+  const permitted = await requestHostPermission(url);
+  if (!permitted) return false;
+
+  const client = createClient(url, { username, password });
+  await client.getDirectoryContents('/');
+  return true;
+}
+
 export async function downloadFromWebDAV(
   settings: SyncSettings['webdav'],
 ): Promise<Space[]> {

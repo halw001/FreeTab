@@ -1,4 +1,4 @@
-import { useRef, useMemo, useState } from 'react';
+import { useRef, useMemo, useState, useCallback } from 'react';
 import {
   LayoutGrid,
   FolderOpen,
@@ -13,13 +13,16 @@ import {
   ArrowDownToLine,
   Loader2,
   HelpCircle,
+  CheckCircle2,
+  XCircle,
+  Wifi,
 } from 'lucide-react';
 import { useTabStore } from '../../src/store/useTabStore';
 import { getTheme } from '../../src/themes';
 import { t } from '../../src/i18n';
-import { uploadToWebDAV, downloadFromWebDAV } from '../../src/utils/webdavSync';
+import { uploadToWebDAV, downloadFromWebDAV, testWebDAVConnection } from '../../src/utils/webdavSync';
 import { uploadToGist, downloadFromGist } from '../../src/utils/gistSync';
-import { requestHostPermission } from '../../src/utils/permissions';
+import { requestHostPermission, hasHostPermission } from '../../src/utils/permissions';
 
 function formatDateTime(timestamp: number): string {
   const d = new Date(timestamp);
@@ -94,7 +97,7 @@ function PasswordInput({
   );
 }
 
-function WebDAVSyncButtons() {
+function WebDAVSyncButtons({ permitted }: { permitted: boolean }) {
   const spaces = useTabStore((state) => state.spaces);
   const replaceSpaces = useTabStore((state) => state.replaceSpaces);
   const syncSettings = useTabStore((state) => state.syncSettings);
@@ -114,8 +117,8 @@ function WebDAVSyncButtons() {
       return;
     }
 
-    const permitted = await requestHostPermission(url);
-    if (!permitted) {
+    const permittedNow = await requestHostPermission(url);
+    if (!permittedNow) {
       alert(tr('pleaseAllowPermission'));
       return;
     }
@@ -150,8 +153,8 @@ function WebDAVSyncButtons() {
       return;
     }
 
-    const permitted = await requestHostPermission(url);
-    if (!permitted) {
+    const permittedNow = await requestHostPermission(url);
+    if (!permittedNow) {
       alert(tr('pleaseAllowPermission'));
       return;
     }
@@ -182,33 +185,38 @@ function WebDAVSyncButtons() {
   };
 
   return (
-    <div className="flex items-center gap-2">
-      <button
-        onClick={handleUpload}
-        disabled={uploading}
-        className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium border rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-        style={{
-          color: themeColors.buttonSecondaryText,
-          backgroundColor: themeColors.buttonSecondaryBg,
-          borderColor: themeColors.buttonSecondaryBorder,
-        }}
-      >
-        {uploading ? <Loader2 size={13} className="animate-spin" /> : <ArrowUpFromLine size={13} />}
-        <span>{tr('uploadLocalToRemote')}</span>
-      </button>
-      <button
-        onClick={handleDownload}
-        disabled={downloading}
-        className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium border rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-        style={{
-          color: themeColors.buttonSecondaryText,
-          backgroundColor: themeColors.buttonSecondaryBg,
-          borderColor: themeColors.buttonSecondaryBorder,
-        }}
-      >
-        {downloading ? <Loader2 size={13} className="animate-spin" /> : <ArrowDownToLine size={13} />}
-        <span>{tr('downloadRemoteToLocal')}</span>
-      </button>
+    <div>
+      <div className="flex items-center gap-2">
+        <button
+          onClick={handleUpload}
+          disabled={uploading}
+          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium border rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          style={{
+            color: themeColors.buttonSecondaryText,
+            backgroundColor: themeColors.buttonSecondaryBg,
+            borderColor: themeColors.buttonSecondaryBorder,
+          }}
+        >
+          {uploading ? <Loader2 size={13} className="animate-spin" /> : <ArrowUpFromLine size={13} />}
+          <span>{tr('uploadLocalToRemote')}</span>
+        </button>
+        <button
+          onClick={handleDownload}
+          disabled={downloading}
+          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium border rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          style={{
+            color: themeColors.buttonSecondaryText,
+            backgroundColor: themeColors.buttonSecondaryBg,
+            borderColor: themeColors.buttonSecondaryBorder,
+          }}
+        >
+          {downloading ? <Loader2 size={13} className="animate-spin" /> : <ArrowDownToLine size={13} />}
+          <span>{tr('downloadRemoteToLocal')}</span>
+        </button>
+      </div>
+      {!permitted && (
+        <div className="text-xs mt-1.5" style={{ color: '#ef4444' }}>{tr('pleaseTestConnectionFirst')}</div>
+      )}
     </div>
   );
 }
@@ -339,6 +347,40 @@ export default function SyncView() {
   const locale = useTabStore((state) => state.locale);
   const themeColors = getTheme(theme);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // WebDAV connection test state
+  const [connTestStatus, setConnTestStatus] = useState<'idle' | 'testing' | 'success' | 'failed'>('idle');
+  const [webdavPermitted, setWebdavPermitted] = useState(true);
+
+  const checkWebdavPermission = useCallback(async (url: string) => {
+    if (!url) {
+      setWebdavPermitted(true);
+      return;
+    }
+    try {
+      const ok = await hasHostPermission(url);
+      setWebdavPermitted(ok);
+    } catch {
+      setWebdavPermitted(true);
+    }
+  }, []);
+
+  useEffect(() => {
+    checkWebdavPermission(syncSettings.webdav.url);
+  }, [syncSettings.webdav.url, checkWebdavPermission]);
+
+  const handleTestConnection = async () => {
+    const { url, username, password } = syncSettings.webdav;
+    if (!url || !username || !password) return;
+    setConnTestStatus('testing');
+    try {
+      const ok = await testWebDAVConnection(url, username, password);
+      setConnTestStatus(ok ? 'success' : 'failed');
+      await checkWebdavPermission(url);
+    } catch {
+      setConnTestStatus('failed');
+    }
+  };
 
   const tr = (key: Parameters<typeof t>[1], params?: Record<string, string | number>) =>
     t(locale, key, params);
@@ -631,18 +673,19 @@ export default function SyncView() {
                   <span className="px-1.5 py-0.5 text-[10px] font-medium text-green-700 bg-green-50 rounded border border-green-200">
                     Beta
                   </span>
-                  <div className="relative group">
-                    <HelpCircle size={14} className="cursor-help transition-colors" style={{ color: themeColors.textMuted }} />
+                </div>
+                <div className="text-xs mt-0.5 leading-relaxed" style={{ color: themeColors.textMuted }}>
+                  {tr('webdavSubtitlePrefix')}
+                  <span className="relative group inline-flex mx-0.5">
+                    <HelpCircle size={11} className="cursor-help transition-colors" style={{ color: themeColors.textMuted }} />
                     <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 text-white text-xs rounded-md shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-150 whitespace-nowrap z-50" style={{ backgroundColor: themeColors.tooltipBg }}>
                       <div className="font-medium mb-1">{tr('webdavSupportedServices')}</div>
                       <div>{tr('webdavServiceList')}</div>
-                      <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-px border-4 border-transparent border-t-gray-900"></div>
+                      <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-px border-4 border-transparent" style={{ borderTopColor: themeColors.tooltipBg }}></div>
                     </div>
-                  </div>
+                  </span>
+                  {tr('webdavSubtitleSuffix')}
                 </div>
-                <p className="text-xs mt-0.5" style={{ color: themeColors.textMuted }}>
-                  {tr('webdavDesc')}
-                </p>
               </div>
             </div>
             <ToggleSwitch
@@ -698,8 +741,44 @@ export default function SyncView() {
                 />
               </div>
               <div className="flex items-center justify-between py-3 border-t" style={{ borderColor: themeColors.dividerColor }}>
-                <span className="text-sm" style={{ color: themeColors.textSecondary }}>{tr('syncMethod')}</span>
-                <WebDAVSyncButtons />
+                <span className="text-sm" style={{ color: themeColors.textSecondary }}>{tr('webdavConnectionTest')}</span>
+                <div className="flex items-center gap-2">
+                  {connTestStatus === 'success' && (
+                    <span className="flex items-center gap-1 text-xs font-medium" style={{ color: '#16a34a' }}>
+                      <CheckCircle2 size={14} />
+                      {tr('connectionSuccess')}
+                    </span>
+                  )}
+                  {connTestStatus === 'failed' && (
+                    <span className="flex items-center gap-1 text-xs font-medium" style={{ color: '#ef4444' }}>
+                      <XCircle size={14} />
+                      {tr('connectionFailed')}
+                    </span>
+                  )}
+                  {connTestStatus === 'testing' && (
+                    <span className="flex items-center gap-1 text-xs" style={{ color: themeColors.textMuted }}>
+                      <Loader2 size={14} className="animate-spin" />
+                      {tr('connectionTesting')}
+                    </span>
+                  )}
+                  <button
+                    onClick={handleTestConnection}
+                    disabled={connTestStatus === 'testing'}
+                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium border rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    style={{
+                      color: themeColors.buttonSecondaryText,
+                      backgroundColor: themeColors.buttonSecondaryBg,
+                      borderColor: themeColors.buttonSecondaryBorder,
+                    }}
+                  >
+                    <Wifi size={13} />
+                    <span>{tr('testConnection')}</span>
+                  </button>
+                </div>
+              </div>
+              <div className="flex items-center justify-between py-3 border-t" style={{ borderColor: themeColors.dividerColor }}>
+                <span className="text-sm" style={{ color: themeColors.textSecondary }}>{tr('manualSync')}</span>
+                <WebDAVSyncButtons permitted={webdavPermitted} />
               </div>
               <div className="flex items-center justify-between py-3 border-t" style={{ borderColor: themeColors.dividerColor }}>
                 <div>
@@ -707,6 +786,9 @@ export default function SyncView() {
                   <div className="text-xs mt-0.5" style={{ color: themeColors.textMuted }}>
                     {tr('autoSyncInterval')}
                   </div>
+                  {syncSettings.webdav.autoSync && !webdavPermitted && (
+                    <div className="text-xs mt-1" style={{ color: '#ef4444' }}>{tr('pleaseTestConnectionFirst')}</div>
+                  )}
                   {syncSettings.webdav.lastSyncTime && (
                     <div className="text-xs mt-1" style={{ color: themeColors.textMuted }}>
                       {tr('lastSyncTime')}:{' '}

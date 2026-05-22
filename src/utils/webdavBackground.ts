@@ -1,5 +1,6 @@
 import { createClient } from 'webdav';
 import type { Space } from '../types';
+import { hasHostPermission } from './permissions';
 
 const REMOTE_DIR = '/freetab';
 const REMOTE_FILE = '/freetab/backup.json';
@@ -135,6 +136,10 @@ export async function performWebDAVAutoSync(): Promise<void> {
   if (!webdav.enabled) return;
   if (!webdav.autoSync) return;
   if (!webdav.url || !webdav.username || !webdav.password) return;
+
+  // Check if we have permission for this WebDAV URL
+  const permitted = await hasHostPermission(webdav.url);
+  if (!permitted) return;
 
   const localEmpty = isLocalEmpty(state.spaces);
   const localLastModified = state.lastModified;

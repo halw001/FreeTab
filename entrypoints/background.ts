@@ -2,15 +2,17 @@ import { performWebDAVAutoSync } from '../src/utils/webdavBackground';
 import { performGistAutoSync } from '../src/utils/gistBackground';
 
 export default defineBackground(() => {
-  chrome.action.onClicked.addListener(async () => {
+  chrome.action.onClicked.addListener(async (tab) => {
     const extensionUrl = chrome.runtime.getURL('/options.html');
 
     try {
-      const tabs = await chrome.tabs.query({ url: extensionUrl });
+      const tabs = await chrome.tabs.query({
+        url: extensionUrl,
+        windowId: tab.windowId,
+      });
 
-      if (tabs.length > 0 && tabs[0].id && tabs[0].windowId) {
+      if (tabs.length > 0 && tabs[0].id) {
         await chrome.tabs.update(tabs[0].id, { active: true });
-        await chrome.windows.update(tabs[0].windowId, { focused: true });
       } else {
         await chrome.tabs.create({ url: extensionUrl });
       }

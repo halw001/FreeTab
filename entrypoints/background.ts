@@ -3,7 +3,7 @@ import { performGistAutoSync } from '../src/utils/gistBackground';
 
 export default defineBackground(() => {
   chrome.action.onClicked.addListener(async (tab) => {
-    const extensionUrl = chrome.runtime.getURL('/options.html');
+    const extensionUrl = chrome.runtime.getURL('/freedesktab.html');
 
     try {
       const tabs = await chrome.tabs.query({

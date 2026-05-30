@@ -27,7 +27,8 @@ export async function uploadToWebDAV(
     await client.createDirectory(REMOTE_DIR);
   }
 
-  const jsonData = JSON.stringify(spacesData, null, 2);
+  const payload = { spaces: spacesData, lastModified: Date.now() };
+  const jsonData = JSON.stringify(payload, null, 2);
   await client.putFileContents(REMOTE_FILE, jsonData, {
     overwrite: true,
   });
@@ -72,9 +73,20 @@ export async function downloadFromWebDAV(
   }
 
   const data = JSON.parse(content);
-  if (!Array.isArray(data)) {
-    throw new Error('远程备份文件格式错误：根节点必须是数组');
+
+  let spaces: Space[];
+
+  if (Array.isArray(data)) {
+    spaces = data as Space[];
+  } else if (data && typeof data === 'object') {
+    spaces = data.spaces ?? [];
+  } else {
+    throw new Error('远程备份文件格式错误：既不是数组也不是对象');
   }
 
-  return data as Space[];
+  if (!Array.isArray(spaces)) {
+    throw new Error('远程备份中 spaces 字段不是数组');
+  }
+
+  return spaces;
 }

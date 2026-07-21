@@ -3,7 +3,7 @@
     "message": "FreeTab - 永久免費的標籤頁儲存與同步工具"
   },
   "extensionDescription": {
-    "message": "永久免費的標籤頁管理工具，支援本機備份與 GitHub Gist & WebDAV 雲端同步。"
+    "message": "永久開源並免費的標籤頁管理工具，支援本機備份與 GitHub Gist & WebDAV 雲端同步。"
   },
   "actionTitle": {
     "message": "FreeTab - 標籤頁管理"

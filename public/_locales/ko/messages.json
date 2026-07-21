@@ -3,7 +3,7 @@
     "message": "FreeTab - 완전 무료 탭 저장 및 동기화 도구"
   },
   "extensionDescription": {
-    "message": "영원히 무료인 탭 관리 도구. 로컬 백업과 GitHub Gist & WebDAV 클라우드 동기화를 지원합니다."
+    "message": "오픈 소스이자 영원히 무료인 탭 관리 도구. 로컬 백업과 GitHub Gist & WebDAV 클라우드 동기화를 지원합니다."
   },
   "actionTitle": {
     "message": "FreeTab - 탭 관리자"

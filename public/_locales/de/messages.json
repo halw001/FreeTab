@@ -3,7 +3,7 @@
     "message": "FreeTab - Kostenloser Tab-Speicher & Sync"
   },
   "extensionDescription": {
-    "message": "Ein für immer kostenloser Tab-Manager mit lokalen Backups und Cloud-Synchronisation via GitHub Gist & WebDAV."
+    "message": "Ein für immer kostenloser Open-Source-Tab-Manager mit lokalen Backups und Cloud-Synchronisation via GitHub Gist & WebDAV."
   },
   "actionTitle": {
     "message": "FreeTab - Tab-Manager"

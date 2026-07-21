@@ -350,7 +350,7 @@ function GroupSection({
       <SortableContext items={group.tabs.map((t) => t.id)}>
         <div
           ref={setDroppableRef}
-          className={`flex flex-wrap gap-3 min-h-[3rem] rounded-lg transition-colors ${
+          className={`flex flex-wrap gap-3 min-h-[5rem] pb-12 rounded-lg transition-colors ${
             isOver ? '' : ''
           }`}
           style={{ backgroundColor: isOver ? themeColors.dragOverBg : 'transparent' }}

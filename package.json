@@ -2,7 +2,7 @@
   "name": "freetab",
   "description": "A free-forever tab manager with local backups and cloud sync via GitHub Gist & WebDAV.",
   "private": true,
-  "version": "1.0.8",
+  "version": "1.1.0",
   "type": "module",
   "scripts": {
     "dev": "wxt",

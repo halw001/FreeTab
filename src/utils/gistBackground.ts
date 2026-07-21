@@ -1,4 +1,5 @@
 import type { Space } from '../types';
+import { sanitizeRemoteData } from './validate';
 
 const GIST_API = 'https://api.github.com/gists';
 const FILE_NAME = 'freetab_backup.json';
@@ -25,8 +26,8 @@ interface RemoteBackup {
 
 function gistHeaders(token: string): Record<string, string> {
   return {
-    'Authorization': `Bearer ${token}`,
-    'Accept': 'application/vnd.github.v3+json',
+    Authorization: `Bearer ${token}`,
+    Accept: 'application/vnd.github.v3+json',
     'Content-Type': 'application/json',
   };
 }
@@ -73,60 +74,59 @@ async function downloadRemoteState(
 
   const parsed = JSON.parse(file.content);
 
-  let spaces: Space[];
-  let lastModified: number | undefined;
-
-  if (Array.isArray(parsed)) {
-    spaces = parsed as Space[];
-    lastModified = undefined;
-  } else if (parsed && typeof parsed === 'object') {
-    spaces = parsed.spaces ?? [];
-    lastModified = parsed.lastModified;
-  } else {
-    throw new Error('Gist 备份文件格式错误');
+  // 数据校验：过滤掉结构损坏的条目
+  const result = sanitizeRemoteData(parsed);
+  if (result.dropped > 0) {
+    console.warn(`Gist 备份数据校验：丢弃了 ${result.dropped} 个无效条目`);
   }
 
-  if (!Array.isArray(spaces)) {
-    throw new Error('Gist 备份中 spaces 字段不是数组');
+  let spaces = result.spaces;
+  let lastModified: number | undefined;
+
+  // 兼容带 lastModified 的新格式
+  if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+    lastModified = parsed.lastModified;
   }
 
   if (lastModified === undefined) {
-    lastModified = spaces.reduce(
-      (max: number, s: Space) =>
-        Math.max(
-          max,
-          s.groups.reduce(
-            (gMax: number, g) =>
-              Math.max(
-                gMax,
-                g.tabs.reduce((tMax: number, t) => Math.max(tMax, t.createdAt ?? 0), 0),
-              ),
-            0,
-          ),
-        ),
-      0,
-    );
+    // 旧格式没有 lastModified，用当前时间作为 fallback，避免误判远端比本地旧
+    lastModified = Date.now();
   }
 
   return { spaces, lastModified };
 }
 
+/**
+ * 分页查找已存在的 FreeTab Gist，避免因 Gist 数量超过 100 而漏查。
+ */
 async function findExistingGist(token: string): Promise<string | null> {
-  const res = await fetch(`${GIST_API}?per_page=100`, {
-    method: 'GET',
-    headers: gistHeaders(token),
-  });
+  let page = 1;
+  const MAX_PAGES = 10; // 最多查 1000 条
 
-  if (!res.ok) {
-    const body = await res.text();
-    throw new Error(`获取 Gist 列表失败 (${res.status}): ${body}`);
-  }
+  while (page <= MAX_PAGES) {
+    const res = await fetch(`${GIST_API}?per_page=100&page=${page}`, {
+      method: 'GET',
+      headers: gistHeaders(token),
+    });
 
-  const gists: Array<{ id: string; files: Record<string, unknown> }> = await res.json();
-  for (const gist of gists) {
-    if (gist.files && FILE_NAME in gist.files) {
-      return gist.id;
+    if (!res.ok) {
+      const body = await res.text();
+      throw new Error(`获取 Gist 列表失败 (${res.status}): ${body}`);
     }
+
+    const gists: Array<{ id: string; files: Record<string, unknown> }> =
+      await res.json();
+    if (gists.length === 0) return null;
+
+    for (const gist of gists) {
+      if (gist.files && FILE_NAME in gist.files) {
+        return gist.id;
+      }
+    }
+
+    // 不足 100 条说明已是最后一页
+    if (gists.length < 100) return null;
+    page++;
   }
 
   return null;
@@ -193,12 +193,42 @@ async function uploadRemoteState(
 
 function isLocalEmpty(spaces: Space[]): boolean {
   if (!spaces || spaces.length === 0) return true;
-  // Only true for the fresh-install default state: exactly 1 space with 0 groups
   if (spaces.length > 1) return false;
   return spaces[0].groups.length === 0;
 }
 
+// BUG 1: 并发锁，防止多个同步任务同时执行
+let gistSyncInProgress = false;
+
 export async function performGistAutoSync(): Promise<void> {
+  if (gistSyncInProgress) {
+    console.log('Gist 同步正在进行中，跳过本次触发');
+    return;
+  }
+  gistSyncInProgress = true;
+  try {
+    await doGistSync();
+  } catch (error: any) {
+    console.error('Gist 自动同步失败:', error?.message || error);
+  } finally {
+    gistSyncInProgress = false;
+  }
+}
+
+/**
+ * BUG 2/3: 写回前重新读取最新 state，避免覆盖 UI 在同步期间的修改；
+ * 构造新对象，不直接修改快照。
+ */
+async function saveWithLatest(
+  updater: (latest: StoreState) => Partial<StoreState>,
+): Promise<void> {
+  const latest = await loadStateFromStorage();
+  if (!latest) return;
+  const newState = { ...latest, ...updater(latest) } as StoreState;
+  await saveStateToStorage(newState);
+}
+
+async function doGistSync(): Promise<void> {
   const state = await loadStateFromStorage();
   if (!state) return;
 
@@ -209,76 +239,99 @@ export async function performGistAutoSync(): Promise<void> {
 
   const localEmpty = isLocalEmpty(state.spaces);
   const localLastModified = state.lastModified;
+  const now = Date.now();
 
-  try {
-    const now = Date.now();
-
-    if (!github.gistId) {
-      if (localEmpty) {
-        const foundId = await findExistingGist(github.token);
-        if (!foundId) return;
-        github.gistId = foundId;
-        const remote = await downloadRemoteState(github.token, foundId);
-        if (!remote) return;
-        state.spaces = remote.spaces;
-        state.lastModified = remote.lastModified;
-        github.lastSyncTime = now;
-        await saveStateToStorage(state);
-        return;
-      }
-      const newGistId = await createGist(github.token, state.spaces, localLastModified);
-      github.gistId = newGistId;
-      github.lastSyncTime = now;
-      await saveStateToStorage(state);
-      return;
-    }
-
-    const remote = await downloadRemoteState(github.token, github.gistId);
-
-    if (!remote) {
-      if (localEmpty) return;
-      await uploadRemoteState(
-        github.token,
-        github.gistId,
-        state.spaces,
-        localLastModified,
-      );
-      github.lastSyncTime = now;
-      await saveStateToStorage(state);
-      return;
-    }
-
-    const remoteLastModified = remote.lastModified;
-
+  // 没有 gistId：首次使用
+  if (!github.gistId) {
     if (localEmpty) {
-      if (isLocalEmpty(remote.spaces)) return; // both sides are empty, nothing to sync
-      state.spaces = remote.spaces;
-      state.lastModified = remoteLastModified;
-      github.lastSyncTime = now;
-      await saveStateToStorage(state);
+      // 本地为空，尝试从远端拉取已有备份
+      const foundId = await findExistingGist(github.token);
+      if (!foundId) return;
+      const remote = await downloadRemoteState(github.token, foundId);
+      if (!remote) return;
+      // BUG 2: 写回前重新读取，避免覆盖同步期间的本地修改
+      await saveWithLatest((latest) => ({
+        spaces: remote.spaces,
+        lastModified: remote.lastModified,
+        syncSettings: {
+          ...latest.syncSettings,
+          github: { ...latest.syncSettings.github, gistId: foundId, lastSyncTime: now },
+        },
+      }));
       return;
     }
 
-    if (remoteLastModified > localLastModified) {
-      state.spaces = remote.spaces;
-      state.lastModified = remoteLastModified;
-      github.lastSyncTime = now;
-      await saveStateToStorage(state);
-      return;
-    }
+    // 本地非空，创建新 gist 上传
+    const newGistId = await createGist(github.token, state.spaces, localLastModified);
+    await saveWithLatest((latest) => ({
+      syncSettings: {
+        ...latest.syncSettings,
+        github: { ...latest.syncSettings.github, gistId: newGistId, lastSyncTime: now },
+      },
+    }));
+    return;
+  }
 
-    if (localLastModified > remoteLastModified) {
-      await uploadRemoteState(
-        github.token,
-        github.gistId,
-        state.spaces,
-        localLastModified,
-      );
-      github.lastSyncTime = now;
-      await saveStateToStorage(state);
-      return;
-    }
-  } catch (error: any) {
-    console.error('Gist 自动同步失败:', error?.message || error);
+  // 有 gistId，下载远端进行对比
+  const remote = await downloadRemoteState(github.token, github.gistId);
+
+  if (!remote) {
+    if (localEmpty) return;
+    // 远端为空，上传本地
+    // BUG 2: 上传时用最新的本地数据，而非同步开始时读取的快照
+    const latest = await loadStateFromStorage();
+    if (!latest) return;
+    await uploadRemoteState(github.token, github.gistId, latest.spaces, latest.lastModified);
+    await saveWithLatest((latest) => ({
+      syncSettings: {
+        ...latest.syncSettings,
+        github: { ...latest.syncSettings.github, lastSyncTime: now },
+      },
+    }));
+    return;
+  }
+
+  const remoteLastModified = remote.lastModified;
+
+  if (localEmpty) {
+    if (isLocalEmpty(remote.spaces)) return;
+    // 本地为空，用远端覆盖
+    await saveWithLatest((latest) => ({
+      spaces: remote.spaces,
+      lastModified: remoteLastModified,
+      syncSettings: {
+        ...latest.syncSettings,
+        github: { ...latest.syncSettings.github, lastSyncTime: now },
+      },
+    }));
+    return;
+  }
+
+  if (remoteLastModified > localLastModified) {
+    // 远端更新，拉取
+    await saveWithLatest((latest) => ({
+      spaces: remote.spaces,
+      lastModified: remoteLastModified,
+      syncSettings: {
+        ...latest.syncSettings,
+        github: { ...latest.syncSettings.github, lastSyncTime: now },
+      },
+    }));
+    return;
+  }
+
+  if (localLastModified > remoteLastModified) {
+    // 本地更新，推送
+    // BUG 2: 上传时用最新的本地数据
+    const latest = await loadStateFromStorage();
+    if (!latest) return;
+    await uploadRemoteState(github.token, github.gistId, latest.spaces, latest.lastModified);
+    await saveWithLatest((latest) => ({
+      syncSettings: {
+        ...latest.syncSettings,
+        github: { ...latest.syncSettings.github, lastSyncTime: now },
+      },
+    }));
+    return;
   }
 }

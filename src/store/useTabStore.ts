@@ -75,6 +75,9 @@ interface TabState {
 
 const STORAGE_KEY = 'freetab-store-v2';
 
+// BUG 6: Debounce timer for chrome.storage.local writes
+let saveTimer: ReturnType<typeof setTimeout> | null = null;
+
 const defaultSyncSettings: SyncSettings = {
   github: { enabled: false, token: '', autoSync: false },
   webdav: { enabled: false, url: '', username: '', password: '', autoSync: false },
@@ -97,18 +100,25 @@ function loadState(): { spaces: Space[]; currentSpaceId: string; currentView: Vi
   }
 }
 
+// BUG 6: Debounce chrome.storage.local writes to avoid frequent I/O during rapid operations (drag, type, etc.)
+// localStorage stays immediate (synchronous, ensures data survives page unload)
 function saveState(state: { spaces: Space[]; currentSpaceId: string; currentView: ViewType; theme: ThemeId; locale: Locale; lastModified: number; syncSettings: SyncSettings }) {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify({ state }));
-    // 同步写入 chrome.storage.local，供 Background Service Worker 读取
+  } catch {
+    // ignore
+  }
+
+  // chrome.storage.local: debounced (300ms) to batch rapid writes
+  if (saveTimer) clearTimeout(saveTimer);
+  saveTimer = setTimeout(() => {
     if (typeof chrome !== 'undefined' && chrome.storage?.local) {
       chrome.storage.local.set({ [STORAGE_KEY]: state }).catch(() => {
         // ignore
       });
     }
-  } catch {
-    // ignore
-  }
+    saveTimer = null;
+  }, 300);
 }
 
 function formatDate(date: Date): string {
@@ -180,9 +190,13 @@ if (typeof chrome !== 'undefined' && chrome.storage?.onChanged) {
           return nextState;
         });
       } finally {
-        setTimeout(() => {
+        // BUG 8: Reset flag via microtask instead of fixed 100ms timeout.
+        // setState has completed synchronously (including localStorage write),
+        // so it's safe to reset. Using microtask avoids the timing window where
+        // a delayed chrome.storage.local.set could trigger onChanged after the flag is reset.
+        queueMicrotask(() => {
           isApplyingRemoteChange = false;
-        }, 100);
+        });
       }
     }
   });
@@ -603,6 +617,14 @@ if (typeof chrome !== 'undefined' && chrome.storage?.local) {
         (newWebdavSyncTime != null && newWebdavSyncTime !== currentWebdavSyncTime) ||
         (newGistSyncTime != null && newGistSyncTime !== currentGistSyncTime);
 
+      // BUG 10: Re-check local state before applying remote change,
+      // in case user modified data during the async gap between loadState() and here
+      const latestLocal = useTabStore.getState();
+      if (latestLocal.lastModified > currentLastModified && !isCurrentEmpty) {
+        // Local data was modified during cold start, skip remote override
+        return;
+      }
+
       const dataChanged = remoteData.lastModified > currentLastModified || isCurrentEmpty;
 
       if (dataChanged || syncSettingsChanged) {
@@ -629,9 +651,10 @@ if (typeof chrome !== 'undefined' && chrome.storage?.local) {
             return nextState;
           });
         } finally {
-          setTimeout(() => {
+          // BUG 8: Reset via microtask instead of fixed timeout
+          queueMicrotask(() => {
             isApplyingRemoteChange = false;
-          }, 100);
+          });
         }
       }
     } catch (error) {

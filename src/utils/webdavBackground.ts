@@ -1,6 +1,7 @@
 import { createClient } from 'webdav';
 import type { Space } from '../types';
 import { hasHostPermission } from './permissions';
+import { sanitizeRemoteData } from './validate';
 
 const REMOTE_DIR = '/freetab';
 const REMOTE_FILE = '/freetab/backup.json';
@@ -62,41 +63,25 @@ async function downloadRemoteState(
     throw new Error('远程文件内容格式不正确');
   }
 
-  const data = JSON.parse(content);
+  const parsed = JSON.parse(content);
 
-  let spaces: Space[];
-  let lastModified: number | undefined;
-
-  if (Array.isArray(data)) {
-    spaces = data as Space[];
-    lastModified = undefined;
-  } else if (data && typeof data === 'object') {
-    spaces = data.spaces ?? [];
-    lastModified = data.lastModified;
-  } else {
-    throw new Error('远程备份文件格式错误：既不是数组也不是对象');
+  // 数据校验：过滤掉结构损坏的条目
+  const result = sanitizeRemoteData(parsed);
+  if (result.dropped > 0) {
+    console.warn(`WebDAV 备份数据校验：丢弃了 ${result.dropped} 个无效条目`);
   }
 
-  if (!Array.isArray(spaces)) {
-    throw new Error('远程备份中 spaces 字段不是数组');
+  const spaces = result.spaces;
+  let lastModified: number | undefined;
+
+  // 兼容带 lastModified 的新格式
+  if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+    lastModified = parsed.lastModified;
   }
 
   if (lastModified === undefined) {
-    lastModified = spaces.reduce(
-      (max: number, s: Space) =>
-        Math.max(
-          max,
-          s.groups.reduce(
-            (gMax: number, g) =>
-              Math.max(
-                gMax,
-                g.tabs.reduce((tMax: number, t) => Math.max(tMax, t.createdAt ?? 0), 0),
-              ),
-            0,
-          ),
-        ),
-      0,
-    );
+    // 旧格式没有 lastModified，用当前时间作为 fallback，避免误判远端比本地旧
+    lastModified = Date.now();
   }
 
   return { spaces, lastModified };
@@ -123,12 +108,42 @@ async function uploadRemoteState(
 
 function isLocalEmpty(spaces: Space[]): boolean {
   if (!spaces || spaces.length === 0) return true;
-  // Only true for the fresh-install default state: exactly 1 space with 0 groups
   if (spaces.length > 1) return false;
   return spaces[0].groups.length === 0;
 }
 
+// BUG 1: 并发锁，防止多个同步任务同时执行
+let webdavSyncInProgress = false;
+
 export async function performWebDAVAutoSync(): Promise<void> {
+  if (webdavSyncInProgress) {
+    console.log('WebDAV 同步正在进行中，跳过本次触发');
+    return;
+  }
+  webdavSyncInProgress = true;
+  try {
+    await doWebdavSync();
+  } catch (error: any) {
+    console.error('WebDAV 自动同步失败:', error?.message || error);
+  } finally {
+    webdavSyncInProgress = false;
+  }
+}
+
+/**
+ * BUG 2/3: 写回前重新读取最新 state，避免覆盖 UI 在同步期间的修改；
+ * 构造新对象，不直接修改快照。
+ */
+async function saveWithLatest(
+  updater: (latest: StoreState) => Partial<StoreState>,
+): Promise<void> {
+  const latest = await loadStateFromStorage();
+  if (!latest) return;
+  const newState = { ...latest, ...updater(latest) } as StoreState;
+  await saveStateToStorage(newState);
+}
+
+async function doWebdavSync(): Promise<void> {
   const state = await loadStateFromStorage();
   if (!state) return;
 
@@ -137,68 +152,88 @@ export async function performWebDAVAutoSync(): Promise<void> {
   if (!webdav.autoSync) return;
   if (!webdav.url || !webdav.username || !webdav.password) return;
 
-  // Check if we have permission for this WebDAV URL
   const permitted = await hasHostPermission(webdav.url);
   if (!permitted) return;
 
   const localEmpty = isLocalEmpty(state.spaces);
   const localLastModified = state.lastModified;
+  const now = Date.now();
 
-  try {
-    const remote = await downloadRemoteState(
+  const remote = await downloadRemoteState(
+    webdav.url,
+    webdav.username,
+    webdav.password,
+  );
+
+  if (!remote) {
+    if (localEmpty) return;
+    // 远端为空，上传本地
+    // BUG 2: 上传时用最新的本地数据，而非同步开始时读取的快照
+    const latest = await loadStateFromStorage();
+    if (!latest) return;
+    await uploadRemoteState(
       webdav.url,
       webdav.username,
       webdav.password,
+      latest.spaces,
+      latest.lastModified,
     );
+    await saveWithLatest((latest) => ({
+      syncSettings: {
+        ...latest.syncSettings,
+        webdav: { ...latest.syncSettings.webdav, lastSyncTime: now },
+      },
+    }));
+    return;
+  }
 
-    const now = Date.now();
+  const remoteLastModified = remote.lastModified;
 
-    if (!remote) {
-      if (localEmpty) return;
-      await uploadRemoteState(
-        webdav.url,
-        webdav.username,
-        webdav.password,
-        state.spaces,
-        localLastModified,
-      );
-      webdav.lastSyncTime = now;
-      await saveStateToStorage(state);
-      return;
-    }
+  if (localEmpty) {
+    if (isLocalEmpty(remote.spaces)) return;
+    // 本地为空，用远端覆盖
+    await saveWithLatest((latest) => ({
+      spaces: remote.spaces,
+      lastModified: remoteLastModified,
+      syncSettings: {
+        ...latest.syncSettings,
+        webdav: { ...latest.syncSettings.webdav, lastSyncTime: now },
+      },
+    }));
+    return;
+  }
 
-    const remoteLastModified = remote.lastModified;
+  if (remoteLastModified > localLastModified) {
+    // 远端更新，拉取
+    await saveWithLatest((latest) => ({
+      spaces: remote.spaces,
+      lastModified: remoteLastModified,
+      syncSettings: {
+        ...latest.syncSettings,
+        webdav: { ...latest.syncSettings.webdav, lastSyncTime: now },
+      },
+    }));
+    return;
+  }
 
-    if (localEmpty) {
-      if (isLocalEmpty(remote.spaces)) return; // both sides are empty, nothing to sync
-      state.spaces = remote.spaces;
-      state.lastModified = remoteLastModified;
-      webdav.lastSyncTime = now;
-      await saveStateToStorage(state);
-      return;
-    }
-
-    if (remoteLastModified > localLastModified) {
-      state.spaces = remote.spaces;
-      state.lastModified = remoteLastModified;
-      webdav.lastSyncTime = now;
-      await saveStateToStorage(state);
-      return;
-    }
-
-    if (localLastModified > remoteLastModified) {
-      await uploadRemoteState(
-        webdav.url,
-        webdav.username,
-        webdav.password,
-        state.spaces,
-        localLastModified,
-      );
-      webdav.lastSyncTime = now;
-      await saveStateToStorage(state);
-      return;
-    }
-  } catch (error: any) {
-    console.error('WebDAV 自动同步失败:', error?.message || error);
+  if (localLastModified > remoteLastModified) {
+    // 本地更新，推送
+    // BUG 2: 上传时用最新的本地数据
+    const latest = await loadStateFromStorage();
+    if (!latest) return;
+    await uploadRemoteState(
+      webdav.url,
+      webdav.username,
+      webdav.password,
+      latest.spaces,
+      latest.lastModified,
+    );
+    await saveWithLatest((latest) => ({
+      syncSettings: {
+        ...latest.syncSettings,
+        webdav: { ...latest.syncSettings.webdav, lastSyncTime: now },
+      },
+    }));
+    return;
   }
 }

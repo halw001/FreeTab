@@ -40,7 +40,9 @@ export default function SearchDialog({
   useEffect(() => {
     if (open) {
       setQuery('');
-      setTimeout(() => inputRef.current?.focus(), 50);
+      // BUG 12: Store timer and clean up on unmount/open change
+      const timer = setTimeout(() => inputRef.current?.focus(), 50);
+      return () => clearTimeout(timer);
     }
   }, [open]);
 

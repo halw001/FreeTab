@@ -1,4 +1,4 @@
-import { useRef, useMemo, useState, useCallback } from 'react';
+import { useRef, useMemo, useState, useCallback, useEffect } from 'react';
 import {
   LayoutGrid,
   FolderOpen,
@@ -33,6 +33,15 @@ function formatDateTime(timestamp: number): string {
   const min = String(d.getMinutes()).padStart(2, '0');
   const s = String(d.getSeconds()).padStart(2, '0');
   return `${y}-${m}-${day} ${h}:${min}:${s}`;
+}
+
+// BUG 4: Track component mount status to prevent setState on unmounted components
+function useIsMounted() {
+  const isMounted = useRef(true);
+  useEffect(() => {
+    return () => { isMounted.current = false; };
+  }, []);
+  return isMounted;
 }
 
 function ToggleSwitch({
@@ -109,6 +118,7 @@ function WebDAVSyncButtons({ permitted }: { permitted: boolean }) {
     t(locale, key, params);
   const [uploading, setUploading] = useState(false);
   const [downloading, setDownloading] = useState(false);
+  const isMounted = useIsMounted();
 
   const handleUpload = async () => {
     const { url } = syncSettings.webdav;
@@ -142,7 +152,7 @@ function WebDAVSyncButtons({ permitted }: { permitted: boolean }) {
         tr('uploadFailed') + ': ' + (error?.message || tr('unknown')),
       );
     } finally {
-      setUploading(false);
+      if (isMounted.current) setUploading(false);
     }
   };
 
@@ -180,7 +190,7 @@ function WebDAVSyncButtons({ permitted }: { permitted: boolean }) {
         tr('downloadFailed') + ': ' + (error?.message || tr('unknown')),
       );
     } finally {
-      setDownloading(false);
+      if (isMounted.current) setDownloading(false);
     }
   };
 
@@ -234,6 +244,7 @@ function GistSyncButtons() {
     t(locale, key, params);
   const [uploading, setUploading] = useState(false);
   const [downloading, setDownloading] = useState(false);
+  const isMounted = useIsMounted();
 
   const handleUpload = async () => {
     if (!syncSettings.github.token) {
@@ -265,7 +276,7 @@ function GistSyncButtons() {
         tr('uploadFailed') + ': ' + (error?.message || tr('unknown')),
       );
     } finally {
-      setUploading(false);
+      if (isMounted.current) setUploading(false);
     }
   };
 
@@ -300,7 +311,7 @@ function GistSyncButtons() {
         tr('downloadFailed') + ': ' + (error?.message || tr('unknown')),
       );
     } finally {
-      setDownloading(false);
+      if (isMounted.current) setDownloading(false);
     }
   };
 
@@ -351,19 +362,20 @@ export default function SyncView() {
   // WebDAV connection test state
   const [connTestStatus, setConnTestStatus] = useState<'idle' | 'testing' | 'success' | 'failed'>('idle');
   const [webdavPermitted, setWebdavPermitted] = useState(true);
+  const isMounted = useIsMounted();
 
   const checkWebdavPermission = useCallback(async (url: string) => {
     if (!url) {
-      setWebdavPermitted(true);
+      if (isMounted.current) setWebdavPermitted(true);
       return;
     }
     try {
       const ok = await hasHostPermission(url);
-      setWebdavPermitted(ok);
+      if (isMounted.current) setWebdavPermitted(ok);
     } catch {
-      setWebdavPermitted(true);
+      if (isMounted.current) setWebdavPermitted(true);
     }
-  }, []);
+  }, [isMounted]);
 
   useEffect(() => {
     checkWebdavPermission(syncSettings.webdav.url);
@@ -375,10 +387,11 @@ export default function SyncView() {
     setConnTestStatus('testing');
     try {
       const ok = await testWebDAVConnection(url, username, password);
+      if (!isMounted.current) return;
       setConnTestStatus(ok ? 'success' : 'failed');
       await checkWebdavPermission(url);
     } catch {
-      setConnTestStatus('failed');
+      if (isMounted.current) setConnTestStatus('failed');
     }
   };
 

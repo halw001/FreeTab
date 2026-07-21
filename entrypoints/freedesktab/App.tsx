@@ -401,6 +401,9 @@ function DragOverlayCard({ item }: { item: DragItemData }) {
   );
 }
 
+// BUG 13: Extract sensor config to module-level constant to prevent re-renders
+const APP_POINTER_OPTIONS = { activationConstraint: { distance: 5 } as const };
+
 function App() {
   const currentSpaceId = useTabStore((state) => state.currentSpaceId);
   const currentView = useTabStore((state) => state.currentView);
@@ -423,11 +426,7 @@ function App() {
   );
 
   const sensors = useSensors(
-    useSensor(PointerSensor, {
-      activationConstraint: {
-        distance: 5,
-      },
-    }),
+    useSensor(PointerSensor, APP_POINTER_OPTIONS),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
     }),

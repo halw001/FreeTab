@@ -80,7 +80,9 @@ export default function ActiveTabsSidebar({
   const tr = (key: Parameters<typeof t>[1], params?: Record<string, string | number>) =>
     t(locale, key, params);
 
+  // BUG 9: Read locale from store inside callback to avoid stale closure
   const fetchTabs = useCallback(async () => {
+    const currentLocale = useTabStore.getState().locale;
     const tabs = await chrome.tabs.query({ currentWindow: true });
     const filtered = tabs.filter((tab) => {
       if (!tab.url) return false;
@@ -93,7 +95,7 @@ export default function ActiveTabsSidebar({
     setActiveTabs(
       filtered.map((tab) => ({
         id: tab.id!,
-        title: tab.title || tr('unknown'),
+        title: tab.title || t(currentLocale, 'unknown'),
         url: tab.url || '',
         favIconUrl: tab.favIconUrl,
       })),
@@ -103,15 +105,23 @@ export default function ActiveTabsSidebar({
   useEffect(() => {
     fetchTabs();
 
-    const handleCreated = () => fetchTabs();
-    const handleUpdated = () => fetchTabs();
-    const handleRemoved = () => fetchTabs();
+    // BUG 5: Debounce tab events to avoid excessive fetchTabs calls during rapid tab operations
+    let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+    const debouncedFetch = () => {
+      if (debounceTimer) clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => fetchTabs(), 150);
+    };
+
+    const handleCreated = () => debouncedFetch();
+    const handleUpdated = () => debouncedFetch();
+    const handleRemoved = () => debouncedFetch();
 
     chrome.tabs.onCreated.addListener(handleCreated);
     chrome.tabs.onUpdated.addListener(handleUpdated);
     chrome.tabs.onRemoved.addListener(handleRemoved);
 
     return () => {
+      if (debounceTimer) clearTimeout(debounceTimer);
       chrome.tabs.onCreated.removeListener(handleCreated);
       chrome.tabs.onUpdated.removeListener(handleUpdated);
       chrome.tabs.onRemoved.removeListener(handleRemoved);

@@ -1,7 +1,7 @@
-import { createClient } from 'webdav';
 import type { Space } from '../types';
 import { hasHostPermission } from './permissions';
 import { sanitizeRemoteData } from './validate';
+import { webdavExists, webdavMkcol, webdavGet, webdavPut, basicAuth } from './webdavClient';
 
 const REMOTE_DIR = '/freetab';
 const REMOTE_FILE = '/freetab/backup.json';
@@ -52,17 +52,11 @@ async function downloadRemoteState(
   username: string,
   password: string,
 ): Promise<RemoteBackup | null> {
-  const client = createClient(url, { username, password });
-  const exists = await client.exists(REMOTE_FILE);
+  const auth = basicAuth(username, password);
+  const exists = await webdavExists(url, REMOTE_FILE, auth);
   if (!exists) return null;
 
-  const content = await client.getFileContents(REMOTE_FILE, {
-    format: 'text',
-  });
-  if (typeof content !== 'string') {
-    throw new Error('远程文件内容格式不正确');
-  }
-
+  const content = await webdavGet(url, REMOTE_FILE, auth);
   const parsed = JSON.parse(content);
 
   // 数据校验：过滤掉结构损坏的条目
@@ -94,16 +88,16 @@ async function uploadRemoteState(
   spaces: Space[],
   lastModified: number,
 ): Promise<void> {
-  const client = createClient(url, { username, password });
-  const dirExists = await client.exists(REMOTE_DIR);
+  const auth = basicAuth(username, password);
+  const dirExists = await webdavExists(url, REMOTE_DIR, auth);
   if (!dirExists) {
-    await client.createDirectory(REMOTE_DIR);
+    await webdavMkcol(url, REMOTE_DIR, auth);
   }
 
   const payload: RemoteBackup = { spaces, lastModified };
   const jsonData = JSON.stringify(payload, null, 2);
 
-  await client.putFileContents(REMOTE_FILE, jsonData, { overwrite: true });
+  await webdavPut(url, REMOTE_FILE, jsonData, auth);
 }
 
 function isLocalEmpty(spaces: Space[]): boolean {

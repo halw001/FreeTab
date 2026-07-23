@@ -1,7 +1,14 @@
-import { createClient } from 'webdav';
 import type { Space } from '../types';
 import type { SyncSettings } from '../store/useTabStore';
 import { requestHostPermission } from './permissions';
+import {
+  webdavExists,
+  webdavMkcol,
+  webdavGet,
+  webdavPut,
+  webdavTestConnection,
+  basicAuth,
+} from './webdavClient';
 
 const REMOTE_DIR = '/freetab';
 const REMOTE_FILE = '/freetab/backup.json';
@@ -20,18 +27,16 @@ export async function uploadToWebDAV(
     throw new Error('权限被拒绝：无法访问该 WebDAV 服务器');
   }
 
-  const client = createClient(url, { username, password });
+  const auth = basicAuth(username, password);
 
-  const exists = await client.exists(REMOTE_DIR);
+  const exists = await webdavExists(url, REMOTE_DIR, auth);
   if (!exists) {
-    await client.createDirectory(REMOTE_DIR);
+    await webdavMkcol(url, REMOTE_DIR, auth);
   }
 
   const payload = { spaces: spacesData, lastModified: Date.now() };
   const jsonData = JSON.stringify(payload, null, 2);
-  await client.putFileContents(REMOTE_FILE, jsonData, {
-    overwrite: true,
-  });
+  await webdavPut(url, REMOTE_FILE, jsonData, auth);
 }
 
 export async function testWebDAVConnection(
@@ -44,9 +49,7 @@ export async function testWebDAVConnection(
   const permitted = await requestHostPermission(url);
   if (!permitted) return false;
 
-  const client = createClient(url, { username, password });
-  await client.getDirectoryContents('/');
-  return true;
+  return await webdavTestConnection(url, username, password);
 }
 
 export async function downloadFromWebDAV(
@@ -62,15 +65,8 @@ export async function downloadFromWebDAV(
     throw new Error('权限被拒绝：无法访问该 WebDAV 服务器');
   }
 
-  const client = createClient(url, { username, password });
-
-  const content = await client.getFileContents(REMOTE_FILE, {
-    format: 'text',
-  });
-
-  if (typeof content !== 'string') {
-    throw new Error('下载的文件内容格式不正确');
-  }
+  const auth = basicAuth(username, password);
+  const content = await webdavGet(url, REMOTE_FILE, auth);
 
   const data = JSON.parse(content);
 

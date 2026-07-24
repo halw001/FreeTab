@@ -39,7 +39,7 @@ function DraggableActiveTab({ tab }: { tab: ActiveTab }) {
       {...attributes}
       {...listeners}
       className={`group flex items-center gap-2 px-3 py-2.5 border rounded-md hover:shadow transition-shadow cursor-pointer ${
-        isDragging ? 'opacity-30 cursor-grabbing' : ''
+        isDragging ? 'opacity-0 cursor-grabbing' : ''
       }`}
     >
       {tab.favIconUrl ? (

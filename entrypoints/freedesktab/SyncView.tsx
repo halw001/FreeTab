@@ -23,6 +23,7 @@ import { t } from '../../src/i18n';
 import { uploadToWebDAV, downloadFromWebDAV, testWebDAVConnection } from '../../src/utils/webdavSync';
 import { uploadToGist, downloadFromGist } from '../../src/utils/gistSync';
 import { requestHostPermission, hasHostPermission } from '../../src/utils/permissions';
+import type { Space } from '../../src/types';
 
 function formatDateTime(timestamp: number): string {
   const d = new Date(timestamp);
@@ -143,8 +144,11 @@ function WebDAVSyncButtons({ permitted }: { permitted: boolean }) {
 
     setUploading(true);
     try {
-      await uploadToWebDAV(syncSettings.webdav, spaces);
-      useTabStore.getState().updateWebDavLastSyncTime(Date.now());
+      const now = Date.now();
+      await uploadToWebDAV(syncSettings.webdav, spaces, now);
+      // 同步本地 lastModified 与远端一致，避免下次自动同步误判为本地有更新
+      useTabStore.getState().updateLastModified(now);
+      useTabStore.getState().updateWebDavLastSyncTime(now);
       alert(tr('uploadSuccess'));
     } catch (error: any) {
       console.error('WebDAV upload failed', error);
@@ -179,10 +183,10 @@ function WebDAVSyncButtons({ permitted }: { permitted: boolean }) {
 
     setDownloading(true);
     try {
-      const data = await downloadFromWebDAV(syncSettings.webdav);
-      replaceSpaces(data);
-      const now = Date.now();
-      useTabStore.getState().updateWebDavLastSyncTime(now);
+      const { spaces: data, lastModified: remoteLastModified } = await downloadFromWebDAV(syncSettings.webdav);
+      // 使用远端的 lastModified，避免下次自动同步误判为本地有更新而反向推送
+      replaceSpaces(data, remoteLastModified);
+      useTabStore.getState().updateWebDavLastSyncTime(Date.now());
       alert(tr('downloadSuccess'));
     } catch (error: any) {
       console.error('WebDAV download failed', error);
@@ -262,13 +266,16 @@ function GistSyncButtons() {
 
     setUploading(true);
     try {
-      const gistId = await uploadToGist(syncSettings.github, spaces);
+      const now = Date.now();
+      const gistId = await uploadToGist(syncSettings.github, spaces, now);
       if (gistId !== syncSettings.github.gistId) {
         updateSyncSettings({
           github: { ...syncSettings.github, gistId },
         });
       }
-      useTabStore.getState().updateGistLastSyncTime(Date.now());
+      // 同步本地 lastModified 与远端一致，避免下次自动同步误判为本地有更新
+      useTabStore.getState().updateLastModified(now);
+      useTabStore.getState().updateGistLastSyncTime(now);
       alert(tr('uploadSuccess'));
     } catch (error: any) {
       console.error('Gist upload failed', error);
@@ -301,8 +308,9 @@ function GistSyncButtons() {
 
     setDownloading(true);
     try {
-      const data = await downloadFromGist(syncSettings.github);
-      replaceSpaces(data);
+      const { spaces: data, lastModified: remoteLastModified } = await downloadFromGist(syncSettings.github);
+      // 使用远端的 lastModified，避免下次自动同步误判为本地有更新而反向推送
+      replaceSpaces(data, remoteLastModified);
       useTabStore.getState().updateGistLastSyncTime(Date.now());
       alert(tr('downloadSuccess'));
     } catch (error: any) {
@@ -411,7 +419,9 @@ export default function SyncView() {
 
   const handleExport = async () => {
     try {
-      const dataStr = JSON.stringify(spaces, null, 2);
+      // 统一使用对象格式 { spaces, lastModified }，与 Gist/WebDAV 备份格式一致
+      const payload = { spaces, lastModified };
+      const dataStr = JSON.stringify(payload, null, 2);
       const blob = new Blob([dataStr], { type: 'application/json' });
 
       const fileHandle = await (window as any).showSaveFilePicker({
@@ -442,12 +452,28 @@ export default function SyncView() {
     const reader = new FileReader();
     reader.onload = (event) => {
       try {
-        const data = JSON.parse(event.target?.result as string);
-        if (Array.isArray(data)) {
-          importData(data);
-        } else {
-          alert(tr('importFormatError'));
+        const parsed = JSON.parse(event.target?.result as string);
+        // 兼容两种格式：
+        // - 新格式（对象）：{ spaces, lastModified }
+        // - 老格式（数组）：[...spaces]
+        let importSpaces: Space[] | null = null;
+        let importLastModified: number | undefined;
+
+        if (Array.isArray(parsed)) {
+          importSpaces = parsed;
+        } else if (parsed && typeof parsed === 'object' && Array.isArray(parsed.spaces)) {
+          importSpaces = parsed.spaces;
+          if (typeof parsed.lastModified === 'number') {
+            importLastModified = parsed.lastModified;
+          }
         }
+
+        if (!importSpaces) {
+          alert(tr('importFormatError'));
+          return;
+        }
+
+        importData(importSpaces, importLastModified);
       } catch {
         alert(tr('importParseError'));
       }
@@ -654,7 +680,9 @@ export default function SyncView() {
                       github: { ...syncSettings.github, autoSync: v },
                     });
                     if (v) {
-                      chrome.alarms.create('gist-auto-sync', { periodInMinutes: 15 });
+                      // delayInMinutes: 0.5 让首次同步在 ~30 秒后触发，
+                      // 避免用户开启自动同步后要等满 15 分钟才首次执行
+                      chrome.alarms.create('gist-auto-sync', { periodInMinutes: 15, delayInMinutes: 0.5 });
                     } else {
                       chrome.alarms.clear('gist-auto-sync');
                     }
@@ -823,7 +851,9 @@ export default function SyncView() {
                       webdav: { ...syncSettings.webdav, autoSync: v },
                     });
                     if (v) {
-                      chrome.alarms.create('webdav-auto-sync', { periodInMinutes: 15 });
+                      // delayInMinutes: 0.5 让首次同步在 ~30 秒后触发，
+                      // 避免用户开启自动同步后要等满 15 分钟才首次执行
+                      chrome.alarms.create('webdav-auto-sync', { periodInMinutes: 15, delayInMinutes: 0.5 });
                     } else {
                       chrome.alarms.clear('webdav-auto-sync');
                     }

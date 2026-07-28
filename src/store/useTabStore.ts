@@ -65,11 +65,13 @@ interface TabState {
     tab: TabItem,
     insertIndex?: number,
   ) => void;
-  importData: (data: Space[]) => void;
-  replaceSpaces: (newSpaces: Space[]) => void;
+  importData: (data: Space[], lastModified?: number) => void;
+  replaceSpaces: (newSpaces: Space[], lastModified?: number) => void;
   updateSyncSettings: (settings: Partial<SyncSettings>) => void;
   updateWebDavLastSyncTime: (time: number) => void;
   updateGistLastSyncTime: (time: number) => void;
+  // 仅更新本地 lastModified，用于手动上传后将本地时间戳与远端对齐
+  updateLastModified: (time: number) => void;
   _initStorageListener: () => void;
 }
 
@@ -530,7 +532,7 @@ export const useTabStore = create<TabState>((set) => ({
       saveState(nextState);
       return nextState;
     }),
-  importData: (data: Space[]) =>
+  importData: (data: Space[], lastModified?: number) =>
     set((state) => {
       if (!window.confirm('警告：导入将覆盖当前所有数据，确定要继续吗？')) {
         return state;
@@ -539,18 +541,18 @@ export const useTabStore = create<TabState>((set) => ({
         ...state,
         spaces: data,
         currentSpaceId: data[0]?.id ?? state.currentSpaceId,
-        lastModified: Date.now(),
+        lastModified: lastModified ?? Date.now(),
       };
       saveState(nextState);
       return nextState;
     }),
-  replaceSpaces: (newSpaces: Space[]) =>
+  replaceSpaces: (newSpaces: Space[], lastModified?: number) =>
     set((state) => {
       const nextState = {
         ...state,
         spaces: newSpaces,
         currentSpaceId: newSpaces[0]?.id ?? state.currentSpaceId,
-        lastModified: Date.now(),
+        lastModified: lastModified ?? Date.now(),
       };
       saveState(nextState);
       return nextState;
@@ -588,6 +590,12 @@ export const useTabStore = create<TabState>((set) => ({
           github: { ...state.syncSettings.github, lastSyncTime: time },
         },
       };
+      saveState(nextState);
+      return nextState;
+    }),
+  updateLastModified: (time: number) =>
+    set((state) => {
+      const nextState = { ...state, lastModified: time };
       saveState(nextState);
       return nextState;
     }),
